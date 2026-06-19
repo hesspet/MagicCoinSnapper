@@ -1,26 +1,4 @@
-﻿@page "/"
+@page "/"
+<PageTitle>Startseite</PageTitle>
 
-<h3>MagicCoinSnapper</h3>
-
-<InputFile OnChange="HandleImage" accept="image/*" capture="environment" />
-
-@if (!string.IsNullOrEmpty(imageData))
-{
-    <img src="@imageData" style="max-width: 90vw; max-height: 80vh; margin-top: 1rem;" />
-}
-
-@code {
-    private string? imageData;
-
-    private async Task HandleImage(InputFileChangeEventArgs e)
-    {
-        var file = e.File;
-        if (file != null)
-        {
-            using var stream = file.OpenReadStream();
-            var buffer = new byte[file.Size];
-            await stream.ReadAsync(buffer);
-            imageData = $"data:image/jpeg;base64,{Convert.ToBase64String(buffer)}";
-        }
-    }
-}
+<MudText Typo="Typo.h4">Startseite</MudText>
