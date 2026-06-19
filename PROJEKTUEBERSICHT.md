@@ -47,10 +47,18 @@ Components/          → Ordner entfernt (BottomNav gelöscht)
 
 Pages/
   Index.razor        → /           Startseite (nur Überschrift "Startseite", kein Body)
-  Camera.razor       → /camera     Scan-Placeholder ("Kamera-Workflow folgt")
+  Camera.razor       → /camera     Kamera-Seite: Live-Kamera (Rückseite), Aufnehmen (PNG),
+                                    Bild laden (Upload), Speichern (Download), Löschen,
+                                    Scannen (Platzhalter). Collocated JS-Modul Camera.razor.js.
+  Camera.razor.js    → ES-Modul: init/capture/stop/downloadFromStream (getUserMedia + canvas + Blob-Download)
+  Camera.razor.css   → Scoped Styles (Video/Preview)
   Settings.razor     → /settings   Einstellungen (Platzhalter)
   Ueber.razor        → /ueber      Über-Seite (Lorem-Ipsum-Beispielinhalt)
   NotFound.razor     → /not-found  404-Seite (via Router NotFoundPage, .NET 10)
+
+Services/
+  ImageStateService.cs → Scoped DI-Service: hält aktuelles Bild (byte[]+ContentType+Source),
+                        ein Bild zur Zeit, Neu überschreibt. Event OnChanged für künftige Scan-Seite.
 
 wwwroot/
   index.html         → MudBlazor CSS (_content/MudBlazor/MudBlazor.min.css)
@@ -69,7 +77,7 @@ Tools/
   GenerateBuildInfo.ps1             → generiert BuildInfo.cs (Namespace MagicCoinSnapper, Berlin-TZ)
 ```
 
-Registrierte Services: Standard-`HttpClient` gegen App-Basisadresse, `MudServices` (MudBlazor).
+Registrierte Services: Standard-`HttpClient` gegen App-Basisadresse, `MudServices` (MudBlazor), `ImageStateService` (Bildzustand für Weiterverarbeitung).
 
 ## Aktueller Projektstatus
 
@@ -104,8 +112,9 @@ Uncommittete Änderungen umfassen:
 
 - [ ] **`.gitignore` neu anlegen** (gelöscht) – mindestens `bin/`, `obj/`, `.vs/` ausschließen
 - [ ] Änderungen committen (MudBlazor + .NET 10 + IIS-Express-Umstellung)
-- [ ] Kamera-Workflow in `Pages/Camera.razor` implementieren (`getUserMedia`, benötigt HTTPS oder `localhost`)
-- [ ] Münzerkennungs-Pipeline neu aufbauen (Vorgänger-Code wurde entfernt)
+- [ ] Kamera-Workflow in `Pages/Camera.razor` implementieren (`getUserMedia`, benötigt HTTPS oder `localhost`) — **Kamera + Aufnehmen + Laden + Speichern + Anzeige umgesetzt; Scan-Logik noch offen**
+- [ ] Münzerkennungs-Pipeline neu aufbauen (Vorgänger-Code wurde entfernt) — "Scannen"-Button ist Platzhalter
+- [ ] Scan-/Verarbeitungs-Seite konsumiert `ImageStateService.ImageBytes`
 - [ ] `Pages/Settings.razor` mit echten Einstellungen füllen
 - [ ] `Pages/Ueber.razor` mit echtem Inhalt füllen (aktuell Lorem Ipsum)
 - [ ] PWA-Cache-Strategie beim Release prüfen (stale SW im Dev-Modus beachten)

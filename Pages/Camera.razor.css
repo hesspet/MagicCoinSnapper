@@ -1,0 +1,21 @@
+.camera-page {
+    padding: 1rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.camera-video {
+    width: 100%;
+    max-height: 60vh;
+    background: #000;
+    border-radius: 8px;
+    object-fit: cover;
+}
+.camera-video.hidden {
+    display: none;
+}
+.preview-image {
+    border-radius: 8px;
+    max-height: 60vh;
+    background: #000;
+}

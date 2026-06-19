@@ -111,3 +111,40 @@
 - Settings/Ueber mit echtem Inhalt füllen
 - MudBlazor-Theme anpassen (optional)
 - `wasm-tools`-Workload für Release-Optimierung
+
+---
+
+## Erweiterung: Camera.razor — Kamera, Speichern, Laden, Bereitstellung (umgesetzt 19.06.2026)
+
+### Klärungen
+- Speichern: Browser-Download (`<a download>` + Blob via `DotNetStreamReference`)
+- Kamera: Rückseite (`facingMode:'environment'`)
+- Bildbereistellung: Scoped Service `ImageStateService` (hält `byte[]`)
+- Format: PNG (Kamera-Capture); Uploads behalten Original-Content-Type
+- Lebenszyklus: Ein Bild zur Zeit, Neu überschreibt
+- "Scannen": Platzhalter-Button → `MudSnackbar` "Scan-Funktion folgt später"
+- Max. Upload-Größe: 10 MB
+
+### Umgesetzt
+- `Services/ImageStateService.cs`: `byte[]? ImageBytes`, `ContentType`, `Source`, `event Action? OnChanged`, `SetImage()`, `Clear()`
+- `Program.cs`: `AddScoped<ImageStateService>()`
+- `_Imports.razor`: `@using MagicCoinSnapper.Services`
+- `Pages/Camera.razor`: UI (Kamera starten/stoppen/aufnehmen, Bild laden via `MudFileUpload`, Vorschau `MudImage`, Speichern/Löschen/Scannen), `IAsyncDisposable` (Kamera-Stream wird beim Verlassen freigegeben)
+- `Pages/Camera.razor.js`: collocated ES-Modul (`init`/`capture`/`stop`/`downloadFromStream`), `getUserMedia` mit `facingMode:environment`, `canvas.toDataURL('image/png')`, Blob-Download mit `revokeObjectURL`
+- `Pages/Camera.razor.css`: Scoped Styles (Video/Preview, `.hidden`)
+
+### Aufgetretene Probleme & Fixes
+1. `MudFileUpload` 9.5: kein `ActivatorContent`-Parameter → `CustomContent` mit `Context="uploader"` + `OnClick="@(async () => await uploader.OpenFilePickerAsync())"`
+2. `FilesChanged` Method-Group-Konvertierung schlug fehl → explizites Lambda `@((IBrowserFile? f) => OnFileSelected(f))`
+3. `InvokeAsync("init")` Typrückschluss → `InvokeVoidAsync`
+4. `DotNetStreamReference.DisposeAsync()` existiert nicht → `ms.DisposeAsync()` (JS-Seite ruft `streamRef.dispose()` auf)
+
+### Verifiziert
+- `dotnet build -c Debug` → 0 Fehler, 1 Warnung (MUD0002 Analyzer-Hinweis zu Generic-Inference, nicht blockierend)
+- `dotnet publish` → 0 Fehler
+- IIS Express HTTPS: `/camera` → 200, `Camera.razor.js`-Modul → 200 (fetchbar, Voraussetzung für JS-Interop)
+- Kamera-Capture/Upload/Save: erfordern Browser mit Kamera — nur manuell testbar
+
+### Offen (Folgeschritte)
+- Scan-/Verarbeitungs-Seite, die `ImageStateService.ImageBytes` konsumiert
+- Echte Münzerkennungs-Pipeline
