@@ -1,4 +1,7 @@
+import { getSelectedModelDescriptor } from './model-registry.js';
+
 let onnxSessionPromise = null;
+let onnxSessionModelId = null;
 
 export async function extractCoinFromDataUrl(dataUrl) {
     const image = await loadImage(dataUrl);
@@ -17,7 +20,10 @@ export async function extractCoinFromDataUrl(dataUrl) {
         confidence: proposal.confidence,
         width: cutout.width,
         height: cutout.height,
-        message: proposal.usedOnnx ? 'Muenze per ONNX freigestellt.' : 'Muenze per Heuristik freigestellt. ONNX-Modell fehlt noch.'
+        modelDisplayName: proposal.modelDisplayName ?? null,
+        message: proposal.usedOnnx
+            ? `Muenze mit ${proposal.modelDisplayName ?? 'ONNX'} freigestellt.`
+            : 'Muenze per Heuristik freigestellt. ONNX-Modell fehlt noch.'
     };
 }
 
@@ -35,8 +41,10 @@ async function createProposal(imageCanvas) {
 }
 
 async function tryCreateOnnxMask(imageCanvas) {
-    const session = await getOnnxSession();
-    if (!session) return null;
+    const activeModel = await getOnnxSession();
+    if (!activeModel) return null;
+
+    const { session, descriptor } = activeModel;
 
     try {
         const size = 512;
@@ -57,20 +65,32 @@ async function tryCreateOnnxMask(imageCanvas) {
         const inputName = session.inputNames[0];
         const output = await session.run({ [inputName]: new window.__mcsOrt.Tensor('float32', tensorData, [1, 3, size, size]) });
         const outputTensor = output[session.outputNames[0]];
-        const maskCanvas = tensorToMaskCanvas(outputTensor, imageCanvas.width, imageCanvas.height);
+        const threshold = Number.isFinite(descriptor.output?.threshold) ? descriptor.output.threshold : 0.5;
+        const maskCanvas = tensorToMaskCanvas(outputTensor, imageCanvas.width, imageCanvas.height, threshold);
         const metadata = analyzeMask(maskCanvas);
 
-        return { usedOnnx: true, confidence: 0.9, maskCanvas, metadata };
+        return { usedOnnx: true, confidence: 0.9, maskCanvas, metadata, modelDisplayName: descriptor.displayName };
     } catch {
         return null;
     }
 }
 
 async function getOnnxSession() {
-    if (onnxSessionPromise) return await onnxSessionPromise;
+    const descriptor = await getSelectedModelDescriptor();
+    if (!descriptor) {
+        resetOnnxSession();
+        return null;
+    }
 
+    if (onnxSessionPromise && onnxSessionModelId === descriptor.id) {
+        const session = await onnxSessionPromise;
+        return session ? { session, descriptor } : null;
+    }
+
+    resetOnnxSession();
+    onnxSessionModelId = descriptor.id;
     onnxSessionPromise = (async () => {
-        const modelUrl = new URL('models/coin-segmentation.onnx', document.baseURI).toString();
+        const modelUrl = descriptor.url;
         const response = await fetch(modelUrl, { method: 'HEAD', cache: 'no-cache' }).catch(() => null);
         if (!response || !response.ok) return null;
 
@@ -81,10 +101,21 @@ async function getOnnxSession() {
         return await ort.InferenceSession.create(modelUrl, { executionProviders: ['wasm'] });
     })().catch(() => null);
 
-    return await onnxSessionPromise;
+    const session = await onnxSessionPromise;
+    return session ? { session, descriptor } : null;
 }
 
-function tensorToMaskCanvas(tensor, width, height) {
+function resetOnnxSession() {
+    const previousSessionPromise = onnxSessionPromise;
+    if (previousSessionPromise) {
+        previousSessionPromise.then(session => session?.release?.()).catch(() => { });
+    }
+
+    onnxSessionPromise = null;
+    onnxSessionModelId = null;
+}
+
+function tensorToMaskCanvas(tensor, width, height, threshold) {
     const data = tensor.data;
     const dims = tensor.dims;
     const sourceWidth = dims[dims.length - 1] || 512;
@@ -97,7 +128,7 @@ function tensorToMaskCanvas(tensor, width, height) {
     const offset = data.length >= sourceWidth * sourceHeight * 2 ? sourceWidth * sourceHeight : 0;
 
     for (let i = 0; i < sourceWidth * sourceHeight; i++) {
-        const v = data[offset + i] > 0.5 ? 255 : 0;
+        const v = data[offset + i] > threshold ? 255 : 0;
         imageData.data[i * 4] = 255;
         imageData.data[i * 4 + 1] = 255;
         imageData.data[i * 4 + 2] = 255;
