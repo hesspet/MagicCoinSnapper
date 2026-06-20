@@ -37,6 +37,39 @@ export async function deleteRawImage(id) {
     await requestToPromise(db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME).delete(id));
 }
 
+export async function getRawImageDataUrl(id) {
+    try {
+        const db = await openDb();
+        const sample = await requestToPromise(db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).get(id));
+        if (!sample || !sample.imageBlob) {
+            return null;
+        }
+        const blob = sample.imageBlob;
+        const contentType = sample.contentType || blob.type || 'image/png';
+        const base64 = await blobToBase64(blob);
+        return `data:${contentType};base64,${base64}`;
+    } catch {
+        return null;
+    }
+}
+
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result;
+            const commaIndex = typeof result === 'string' ? result.indexOf(',') : -1;
+            if (commaIndex === -1) {
+                reject(new Error('DataURL konnte nicht erzeugt werden.'));
+                return;
+            }
+            resolve(result.slice(commaIndex + 1));
+        };
+        reader.onerror = () => reject(reader.error || new Error('Blob konnte nicht gelesen werden.'));
+        reader.readAsDataURL(blob);
+    });
+}
+
 export async function exportRawImages() {
     const db = await openDb();
     const samples = await requestToPromise(db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll());

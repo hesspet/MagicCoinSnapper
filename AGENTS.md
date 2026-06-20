@@ -18,6 +18,7 @@
 - When using sub-agents to implement features or fix bugs, act as a coordinator only
 - Use the best model for the task - premium models for complex tasks (like coding) and mid-tier models for simpler tasks, like documentation
 - After completing features (large or small), always run commands like lint, type check and next build to check code quality
+- After each bug fix oder feature implementation the minor version counter should be incremented
 
 ## TESTING
 

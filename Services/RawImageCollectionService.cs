@@ -91,6 +91,14 @@ public sealed class RawImageCollectionService : IAsyncDisposable
         return await module.InvokeAsync<RawImageCollectionExport?>("exportRawImages", cancellationToken);
     }
 
+    public async ValueTask<string?> LoadImageDataUrlAsync(string id, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(id);
+
+        var module = await GetModuleAsync(cancellationToken);
+        return await module.InvokeAsync<string?>("getRawImageDataUrl", cancellationToken, id);
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (!moduleTask.IsValueCreated)
