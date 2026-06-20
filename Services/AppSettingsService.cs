@@ -16,12 +16,15 @@ public sealed class AppSettingsService : IAsyncDisposable
 
     public bool ExpertModeEnabled { get; private set; }
 
+    public string? SelectedModelId { get; private set; }
+
     public event Action? OnChanged;
 
     public async ValueTask LoadAsync(CancellationToken cancellationToken = default)
     {
         var module = await GetModuleAsync(cancellationToken);
         ExpertModeEnabled = await module.InvokeAsync<bool>("getExpertMode", cancellationToken);
+        SelectedModelId = await module.InvokeAsync<string?>("getSelectedModelId", cancellationToken);
         OnChanged?.Invoke();
     }
 
@@ -30,6 +33,14 @@ public sealed class AppSettingsService : IAsyncDisposable
         var module = await GetModuleAsync(cancellationToken);
         ExpertModeEnabled = enabled;
         await module.InvokeVoidAsync("setExpertMode", cancellationToken, enabled);
+        OnChanged?.Invoke();
+    }
+
+    public async ValueTask SetSelectedModelIdAsync(string? modelId, CancellationToken cancellationToken = default)
+    {
+        var module = await GetModuleAsync(cancellationToken);
+        SelectedModelId = string.IsNullOrWhiteSpace(modelId) ? null : modelId;
+        await module.InvokeVoidAsync("setSelectedModelId", cancellationToken, SelectedModelId);
         OnChanged?.Invoke();
     }
 

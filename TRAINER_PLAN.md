@@ -39,7 +39,8 @@ Training Pipeline
   -> Modellpaket
 
 MagicCoinSnapper PWA
-  -> wwwroot/models/coin-segmentation.onnx
+  -> wwwroot/models/<model-id>/
+  -> wwwroot/models/manifest.json
 ```
 
 ## Geplante Struktur
@@ -133,10 +134,14 @@ Maskenformat:
 - Bild ausschliessen
 - Metadaten pflegen
 - Dataset validieren
+- Daten aufteilen
 - Annotated Dataset exportieren
 - Trainingslauf starten
+- Modell testen
 - Trainingslog anzeigen
 - ONNX exportieren
+- Modellpaket erstellen
+- Modell in PWA uebernehmen
 
 ## CLI MVP
 
@@ -188,6 +193,13 @@ mcs-model-general-1.0.0.zip
   SHA256SUMS.txt
 ```
 
+## PWA-Modellverwaltung
+
+- Modelle liegen unter `wwwroot/models/<model-id>/`.
+- `wwwroot/models/manifest.json` verwendet `schemaVersion = mcs-model-index-v1`.
+- Die PWA bietet in den Einstellungen die Scan-Modell-Auswahl aus dem Manifest.
+- Ohne Manifest bleibt `wwwroot/models/coin-segmentation.onnx` als Legacy-Fallback aktiv.
+
 ## Umsetzungsphasen
 
 1. `trainer/` Python-Projekt anlegen. [erledigt] Paket `mcs_trainer`, `pyproject.toml`, editable installiert.
@@ -199,15 +211,15 @@ mcs-model-general-1.0.0.zip
 7. Trainingspipeline mit PyTorch bauen. [erledigt] U-Net (base=32), `train`/`evaluate`, BCE+Adam, Checkpoints.
 8. ONNX-Export und ONNX-Validierung ergaenzen. [erledigt] `export-onnx`, feste Shapes [1,3,512,512]->[1,1,512,512], onnxsim.
 9. Modellpaket-Erzeugung bauen. [erledigt] `package-model`, zip mit onnx/model.json/metrics.json/preprocessing.json/README/SHA256SUMS.
-10. PWA-Smoke-Test mit `wwwroot/models/coin-segmentation.onnx`. [erledigt] ONNX kopiert; aktuell Smoke-Modell, noch kein Produktionsmodell.
+10. PWA-Smoke-Test und Modelluebernahme. [erledigt] Modellinstallation unter `wwwroot/models/<model-id>/`, Manifest-Update und Legacy-Fallback dokumentiert; aktuell Smoke-Modell, noch kein Produktionsmodell.
 
 ## Status
 
-Alle 10 Phasen sind abgeschlossen und verifiziert. Die CLI hat 8 Befehle (`import-raw`, `validate`, `split`, `train`, `evaluate`, `export-onnx`, `package-model`, `gui`). 28 Tests via `python -m pytest -q` aus `trainer/` gruen. End-to-end-Smoke verifiziert: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], 0..1) -> package-model -> ONNX nach `wwwroot/models/coin-segmentation.onnx`.
+Alle 10 Phasen sind abgeschlossen und verifiziert. Die CLI hat 8 Befehle (`import-raw`, `validate`, `split`, `train`, `evaluate`, `export-onnx`, `package-model`, `gui`). 28 Tests via `python -m pytest -q` aus `trainer/` gruen. End-to-end-Smoke verifiziert: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], 0..1) -> package-model -> Modell in PWA uebernommen.
 
 ## Naechste Schritte
 
-- Smoke-Test-ONNX durch ein mit echten Muenzbildern trainiertes Produktionsmodell ersetzen.
+- Smoke-Test-Modell durch ein mit echten Muenzbildern trainiertes Produktionsmodell ersetzen.
 - Weitere Trainingsprofile implementieren (`poker-coins`, `silver-dollar`, `stage-light`, `customer-*`).
 - Smartere Splits: gleiche Muenze/Session nicht gleichzeitig in Train und Test.
 - GUI Active-Learning Verbesserungen.

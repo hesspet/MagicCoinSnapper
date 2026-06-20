@@ -2,7 +2,7 @@
 
 ## Kurzprofil
 
-Der MagicCoinSnapper Trainer ist eine lokale Desktop-/CLI-Anwendung fuer Windows. Er verarbeitet Rohbilder aus der MagicCoinSnapper PWA, ermoeglicht Maskenannotation am Desktop und erzeugt Trainingsdaten sowie ONNX-Modelle fuer die PWA.
+Der MagicCoinSnapper Trainer ist eine lokale Desktop-/CLI-Anwendung fuer Windows. Er verarbeitet Rohbilder aus der MagicCoinSnapper PWA, ermoeglicht Maskenannotation am Desktop, trainiert Segmentierungsmodelle und installiert Modelle fuer die PWA.
 
 ## Rolle Im Gesamtsystem
 
@@ -14,12 +14,13 @@ PWA auf Smartphone
 Trainer auf Desktop
   Raw-ZIP importieren
   Muenze markieren
-  Metadaten pflegen
-  Dataset validieren
-  Modell trainieren
-  ONNX exportieren
+  Daten pruefen und aufteilen
+  Modell trainieren, testen und exportieren
+  Modellpaket erstellen
+  Modell in PWA uebernehmen
 
 PWA
+  Scan-Modell in Einstellungen auswaehlen
   ONNX-Modell lokal fuer Scan nutzen
 ```
 
@@ -56,9 +57,9 @@ CLI-Befehle (alle funktionstuechtig):
 
 Tests: 28 Tests via `python -m pytest -q` aus `trainer/` gruen. Decken Import, Raw-/Annotated-Validierung, Splits und CLI-Smoke ab.
 
-End-to-end Smoke verifiziert: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], Bereich 0..1) -> package-model -> ONNX nach `wwwroot/models/coin-segmentation.onnx` kopiert.
+End-to-end Smoke verifiziert: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], Bereich 0..1) -> package-model -> Modell in PWA uebernommen.
 
-Hinweis: Das aktuell in `wwwroot/models/coin-segmentation.onnx` liegende Modell ist das Smoke-Test-Modell (trainiert auf 12 synthetischen 64x64-Kreis-Samples) und KEIN Produktionsmodell. Es muss mit echten Daten ersetzt werden.
+PWA-Modellverwaltung: Modelle liegen unter `wwwroot/models/<model-id>/`. `wwwroot/models/manifest.json` verwendet `schemaVersion = mcs-model-index-v1`. Vor Ersatz vorhandener Modelle erstellt die GUI nach Bestaetigung Backups. Die PWA bietet in den Einstellungen eine Scan-Modell-Auswahl aus dem Manifest und faellt ohne Manifest auf `wwwroot/models/coin-segmentation.onnx` zurueck.
 
 ## Ordnerstruktur
 
@@ -68,6 +69,9 @@ trainer/
   README.md
   PROJEKTUEBERSICHT.md
   trainer_plan.md
+  docs/
+    gui.md
+    model-management.md
   src/mcs_trainer/
     __init__.py            (__version__ = "0.1.0")
     __main__.py
@@ -94,7 +98,7 @@ trainer/
       image_viewer.py      (ImageViewer: Zoom/Pan, Pinsel/Radierer/Ellipse)
       mask_editor.py       (MaskEditor: Undo/Redo, to_mask_png_bytes 8-bit L {0,255})
       metadata_panel.py    (MetadataPanel: notes/tags/excluded)
-      main_window.py       (MainWindow: Toolbar, 3-Pane, Tastatur-Navigation, Save/Export/Validate, QProcess-Training)
+      main_window.py       (MainWindow: Toolbar, 3-Pane, Tastatur-Navigation, Workflow-Aktionen, QProcess-Training/Export)
   tests/                   (28 Tests: Import, Raw-/Annotated-Validierung, Splits, CLI-Smoke)
   data/
     incoming/
@@ -136,7 +140,7 @@ Masken:
 - `0 = Hintergrund`
 - `255 = Muenze`
 
-## Desktop-App MVP
+## Desktop-GUI
 
 - Raw-ZIP importieren
 - Bildliste
@@ -149,7 +153,13 @@ Masken:
 - Ausschluss einzelner Bilder
 - Dataset-Speicherung
 - Annotated-Dataset-Export
-- Trainingslauf starten
+- Daten pruefen
+- Daten aufteilen
+- Trainingslauf mit Konfiguration starten
+- Modell testen
+- ONNX exportieren
+- Modellpaket erstellen
+- Modell in PWA uebernehmen
 - Trainingslog anzeigen
 
 ## CLI MVP
@@ -180,11 +190,19 @@ output: float32[1,1,512,512], 0..1
 threshold: 0.5
 ```
 
+## Modellverwaltung Fuer Die PWA
+
+- Installationsziel: `wwwroot/models/<model-id>/`.
+- Modellindex: `wwwroot/models/manifest.json` mit `schemaVersion = mcs-model-index-v1`.
+- PWA Settings: Scan-Modell aus dem Manifest auswaehlen.
+- Legacy-Fallback: `wwwroot/models/coin-segmentation.onnx`, falls kein Manifest verfuegbar ist.
+- Ersatz vorhandener Modelle erfolgt in der GUI erst nach Bestaetigung und mit Backup.
+
 ## Naechste Schritte
 
-- Smoke-Test-ONNX durch ein mit echten Muenzbildern trainiertes Produktionsmodell ersetzen.
+- Smoke-Test-Modell durch ein mit echten Muenzbildern trainiertes Produktionsmodell ersetzen.
 - Weitere Trainingsprofile (`poker-coins`, `silver-dollar`, `stage-light`, `customer-*`) implementieren.
 - Smartere Splits: gleiche Muenze/Session nicht gleichzeitig in Train und Test.
-- PWA-Smoke-Test Automation (Modellvertrag gegen `wwwroot/models/coin-segmentation.onnx`).
+- PWA-Smoke-Test Automation gegen Manifest-Modell und Legacy-Fallback.
 - GUI Active-Learning Verbesserungen (z. B. Vorhersage-basiertes Vorannotieren).
 - Produktionsmodell mit echten Muenzbildern trainieren und in PWA ausliefern.

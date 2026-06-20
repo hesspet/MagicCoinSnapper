@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import sys
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,10 +12,16 @@ from PySide6.QtCore import QProcess, Qt
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
     QDockWidget,
+    QDoubleSpinBox,
     QFileDialog,
+    QFormLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
@@ -30,6 +37,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from mcs_trainer import __version__
 from mcs_trainer.dataset.annotated_dataset import (
     load_annotated,
     save_annotated,
@@ -40,14 +48,108 @@ from mcs_trainer.dataset.schemas import (
     AnnotatedMetadata,
     AnnotatedSample,
 )
-from mcs_trainer.dataset.validation import validate_annotated
 from mcs_trainer.app.image_viewer import ImageViewer
 from mcs_trainer.app.mask_editor import MaskEditor
 from mcs_trainer.app.metadata_panel import MetadataPanel
+from mcs_trainer.app import workflow
+from mcs_trainer.utils.paths import slugify_dataset_id
 
 
 _ANNOTATED_ROOT = Path("trainer/data/annotated")
 _RAW_ROOT = Path("trainer/data/raw")
+
+
+class TrainingConfigDialog(QDialog):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Training konfigurieren")
+        layout = QFormLayout(self)
+
+        self.profile = QLineEdit("general")
+        self.device = QComboBox()
+        self.device.addItems(["auto", "cpu", "cuda"])
+        self.epochs = QSpinBox()
+        self.epochs.setRange(1, 10000)
+        self.epochs.setValue(30)
+        self.batch_size = QSpinBox()
+        self.batch_size.setRange(1, 1024)
+        self.batch_size.setValue(8)
+        self.lr = QDoubleSpinBox()
+        self.lr.setDecimals(6)
+        self.lr.setRange(0.000001, 10.0)
+        self.lr.setValue(0.001)
+
+        layout.addRow("Profil", self.profile)
+        layout.addRow("Geraet", self.device)
+        layout.addRow("Epochen", self.epochs)
+        layout.addRow("Batch-Groesse", self.batch_size)
+        layout.addRow("Lernrate", self.lr)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    def values(self) -> dict[str, object]:
+        return {
+            "profile": self.profile.text().strip() or "general",
+            "device": self.device.currentText(),
+            "epochs": self.epochs.value(),
+            "batch_size": self.batch_size.value(),
+            "lr": self.lr.value(),
+        }
+
+
+class ModelMetadataDialog(QDialog):
+    def __init__(
+        self,
+        default_id: str,
+        default_profile: str,
+        parent: Optional[QWidget] = None,
+    ) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Modelldaten")
+        layout = QFormLayout(self)
+
+        self.model_id = QLineEdit(default_id)
+        self.display_name = QLineEdit("Coin Segmentation")
+        self.description = QLineEdit("Segmentierungsmodell fuer MagicCoinSnapper")
+        self.object_type = QLineEdit("coin")
+        self.currency = QLineEdit("unknown")
+        self.use_case = QLineEdit("segmentation")
+        self.profile = QLineEdit(default_profile)
+        self.version = QLineEdit(__version__)
+
+        layout.addRow("ID", self.model_id)
+        layout.addRow("Anzeigename", self.display_name)
+        layout.addRow("Beschreibung", self.description)
+        layout.addRow("Objekttyp", self.object_type)
+        layout.addRow("Waehrung", self.currency)
+        layout.addRow("Einsatz", self.use_case)
+        layout.addRow("Profil", self.profile)
+        layout.addRow("Version", self.version)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
+
+    def metadata(self) -> dict[str, str]:
+        model_id = self.model_id.text().strip() or "coin-segmentation"
+        return workflow.build_model_metadata(
+            model_id=model_id,
+            display_name=self.display_name.text().strip() or model_id,
+            description=self.description.text().strip(),
+            object_type=self.object_type.text().strip() or "coin",
+            currency=self.currency.text().strip() or "unknown",
+            use_case=self.use_case.text().strip() or "segmentation",
+            profile=self.profile.text().strip() or "general",
+            version=self.version.text().strip() or __version__,
+        )
 
 
 class MainWindow(QMainWindow):
@@ -61,6 +163,11 @@ class MainWindow(QMainWindow):
         self._index: int = -1
         self._dirty: bool = False
         self._mask_cache: dict[str, bytes] = {}
+        self._latest_run_dir: Optional[Path] = None
+        self._latest_onnx_path: Optional[Path] = None
+        self._latest_package_path: Optional[Path] = None
+        self._last_train_out_dir = Path("trainer/runs/coinseg")
+        self._last_train_profile = "general"
 
         self._editor = MaskEditor()
         self._viewer = ImageViewer(self._editor)
@@ -160,17 +267,39 @@ class MainWindow(QMainWindow):
         self._act_save.triggered.connect(self._do_save)
         tb.addAction(self._act_save)
 
-        self._act_export = QAction("Export ZIP", self)
+        self._act_export = QAction("Dataset ZIP exportieren", self)
         self._act_export.triggered.connect(self._do_export_zip)
         tb.addAction(self._act_export)
 
-        self._act_validate = QAction("Validieren", self)
+        tb.addSeparator()
+
+        self._act_validate = QAction("Daten pruefen", self)
         self._act_validate.triggered.connect(self._do_validate)
         tb.addAction(self._act_validate)
 
-        self._act_train = QAction("Training starten", self)
+        self._act_split = QAction("Daten aufteilen", self)
+        self._act_split.triggered.connect(self._do_split)
+        tb.addAction(self._act_split)
+
+        self._act_train = QAction("Training starten (config)", self)
         self._act_train.triggered.connect(self._do_train)
         tb.addAction(self._act_train)
+
+        self._act_evaluate = QAction("Modell testen", self)
+        self._act_evaluate.triggered.connect(self._do_evaluate)
+        tb.addAction(self._act_evaluate)
+
+        self._act_export_onnx = QAction("ONNX exportieren", self)
+        self._act_export_onnx.triggered.connect(self._do_export_onnx)
+        tb.addAction(self._act_export_onnx)
+
+        self._act_package_model = QAction("Modellpaket erstellen", self)
+        self._act_package_model.triggered.connect(self._do_package_model)
+        tb.addAction(self._act_package_model)
+
+        self._act_install_model = QAction("Modell in PWA uebernehmen", self)
+        self._act_install_model.triggered.connect(self._do_install_model)
+        tb.addAction(self._act_install_model)
 
     def _build_shortcuts(self) -> None:
         QShortcut(QKeySequence("Left"), self, activated=self._prev_sample)
@@ -499,9 +628,9 @@ class MainWindow(QMainWindow):
 
     def _do_validate(self) -> None:
         if self._dataset_dir is None:
-            QMessageBox.information(self, "Validieren", "Kein Dataset geladen.")
+            QMessageBox.information(self, "Daten pruefen", "Kein Dataset geladen.")
             return
-        res = validate_annotated(self._dataset_dir)
+        res = workflow.validate_annotated_dataset(self._dataset_dir)
         parts = []
         if res.ok:
             parts.append("OK: keine Fehler.")
@@ -511,12 +640,38 @@ class MainWindow(QMainWindow):
         if res.warnings:
             parts.append(f"{len(res.warnings)} Warnungen:")
             parts.extend(f"  - {w}" for w in res.warnings)
-        QMessageBox.information(self, "Validierung", "\n".join(parts))
+        QMessageBox.information(self, "Daten pruefen", "\n".join(parts))
+
+    def _do_split(self) -> None:
+        if self._dataset_dir is None:
+            QMessageBox.information(self, "Daten aufteilen", "Kein Dataset geladen.")
+            return
+        if self._dirty:
+            self._do_save()
+        try:
+            result = workflow.split_dataset(self._dataset_dir)
+        except Exception as exc:
+            QMessageBox.critical(self, "Daten aufteilen", str(exc))
+            return
+        QMessageBox.information(
+            self,
+            "Daten aufteilen",
+            "Splits erstellt:\n"
+            f"Train: {result.train_count}\n"
+            f"Val: {result.val_count}\n"
+            f"Test: {result.test_count}",
+        )
 
     def _do_train(self) -> None:
         if self._dataset_dir is None:
             QMessageBox.information(self, "Training", "Kein Dataset geladen.")
             return
+        dialog = TrainingConfigDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        config = dialog.values()
+        if self._dirty:
+            self._do_save()
         self._train_dock.setVisible(True)
         self._train_log.clear()
         if self._train_process is not None:
@@ -527,10 +682,177 @@ class MainWindow(QMainWindow):
         proc.readyReadStandardOutput.connect(lambda: self._on_train_output(proc))
         proc.finished.connect(lambda code, status: self._on_train_finished(code))
         self._train_process = proc
-        self._train_log.appendPlainText(
-            f"$ mcs-trainer train --dataset {self._dataset_dir} --profile general\n"
+        self._last_train_profile = str(config["profile"])
+        self._last_train_out_dir = Path("trainer/runs/coinseg")
+        args = [
+            "-m",
+            "mcs_trainer.cli.main",
+            "train",
+            "--dataset",
+            str(self._dataset_dir),
+            "--profile",
+            self._last_train_profile,
+            "--device",
+            str(config["device"]),
+            "--epochs",
+            str(config["epochs"]),
+            "--batch-size",
+            str(config["batch_size"]),
+            "--lr",
+            str(config["lr"]),
+            "--out-dir",
+            str(self._last_train_out_dir),
+        ]
+        self._train_log.appendPlainText(f"$ {sys.executable} {' '.join(args)}\n")
+        proc.start(sys.executable, args)
+
+    def _do_evaluate(self) -> None:
+        if self._dataset_dir is None:
+            QMessageBox.information(self, "Modell testen", "Kein Dataset geladen.")
+            return
+        run_dir = self._select_run_dir("Run-Verzeichnis fuer Test waehlen")
+        if run_dir is None:
+            return
+        try:
+            result = workflow.evaluate_model(run_dir, self._dataset_dir)
+        except Exception as exc:
+            QMessageBox.critical(self, "Modell testen", str(exc))
+            return
+        QMessageBox.information(
+            self,
+            "Modell testen",
+            f"Loss: {result.loss:.4f}\n"
+            f"Dice: {result.dice:.4f}\n"
+            f"IoU: {result.iou:.4f}\n"
+            f"Samples: {result.n_samples}",
         )
-        proc.start("mcs-trainer", ["train", "--dataset", str(self._dataset_dir), "--profile", "general"])
+
+    def _do_export_onnx(self) -> None:
+        run_dir = self._select_run_dir("Run-Verzeichnis fuer ONNX-Export waehlen")
+        if run_dir is None:
+            return
+        try:
+            onnx_path = workflow.export_onnx_model(run_dir)
+        except Exception as exc:
+            QMessageBox.critical(self, "ONNX exportieren", str(exc))
+            return
+        self._latest_run_dir = run_dir
+        self._latest_onnx_path = onnx_path
+        QMessageBox.information(self, "ONNX exportieren", f"Exportiert:\n{onnx_path}")
+
+    def _do_package_model(self) -> None:
+        run_dir = self._select_run_dir("Run-Verzeichnis fuer Modellpaket waehlen")
+        if run_dir is None:
+            return
+        onnx_path = self._select_onnx_path("ONNX-Datei fuer Modellpaket waehlen")
+        if onnx_path is None:
+            return
+        metadata = self._prompt_model_metadata(run_dir)
+        if metadata is None:
+            return
+        try:
+            package_path = workflow.package_trained_model(
+                onnx_path=onnx_path,
+                run_dir=run_dir,
+                metadata=metadata,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Modellpaket erstellen", str(exc))
+            return
+        self._latest_run_dir = run_dir
+        self._latest_onnx_path = onnx_path
+        self._latest_package_path = package_path
+        QMessageBox.information(
+            self, "Modellpaket erstellen", f"Paket erstellt:\n{package_path}"
+        )
+
+    def _do_install_model(self) -> None:
+        onnx_path = self._select_onnx_path("ONNX-Datei fuer PWA-Uebernahme waehlen")
+        if onnx_path is None:
+            return
+        metadata = self._prompt_model_metadata(self._latest_run_dir)
+        if metadata is None:
+            return
+        default_root = workflow.default_pwa_wwwroot()
+        pwa_path = QFileDialog.getExistingDirectory(
+            self,
+            "PWA-wwwroot waehlen",
+            str(default_root),
+        )
+        if not pwa_path:
+            return
+        exists = workflow.model_install_targets_exist(pwa_path, metadata["id"])
+        action = "ersetzen" if exists else "installieren"
+        res = QMessageBox.question(
+            self,
+            "Modell in PWA uebernehmen",
+            f"Modell '{metadata['id']}' in die PWA {action}?\n\n"
+            "Vorhandene Dateien werden automatisch mit Zeitstempel gesichert.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if res != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            result = workflow.install_model(
+                onnx_path=onnx_path,
+                pwa_wwwroot=Path(pwa_path),
+                metadata=metadata,
+                backup_existing=True,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Modell in PWA uebernehmen", str(exc))
+            return
+        backup_text = "\n".join(str(p) for p in result.backups) or "Keine"
+        QMessageBox.information(
+            self,
+            "Modell in PWA uebernehmen",
+            f"Installiert:\n{result.model_dir}\n\nManifest:\n{result.manifest_path}\n\nBackups:\n{backup_text}",
+        )
+
+    def _select_run_dir(self, title: str) -> Optional[Path]:
+        if self._latest_run_dir is not None and self._latest_run_dir.exists():
+            return self._latest_run_dir
+        newest = workflow.find_newest_run(self._last_train_out_dir, self._last_train_profile)
+        if newest is not None:
+            self._latest_run_dir = newest
+            return newest
+        path = QFileDialog.getExistingDirectory(self, title, str(self._last_train_out_dir))
+        return Path(path) if path else None
+
+    def _select_onnx_path(self, title: str) -> Optional[Path]:
+        if self._latest_onnx_path is not None and self._latest_onnx_path.exists():
+            return self._latest_onnx_path
+        if self._latest_run_dir is not None:
+            candidate = self._latest_run_dir / "coin-segmentation.onnx"
+            if candidate.exists():
+                self._latest_onnx_path = candidate
+                return candidate
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, title, "", "ONNX-Modelle (*.onnx);;Alle Dateien (*)"
+        )
+        return Path(file_path) if file_path else None
+
+    def _prompt_model_metadata(self, run_dir: Optional[Path]) -> Optional[dict]:
+        profile = self._profile_from_run(run_dir) or self._last_train_profile
+        base = self._metadata.datasetId if self._metadata is not None else "coin-segmentation"
+        default_id = slugify_dataset_id(f"{base}-{profile}")
+        dialog = ModelMetadataDialog(default_id, profile, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+        return dialog.metadata()
+
+    def _profile_from_run(self, run_dir: Optional[Path]) -> Optional[str]:
+        if run_dir is None:
+            return None
+        try:
+            import json
+
+            meta = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+            profile = meta.get("profile")
+            return str(profile) if profile else None
+        except Exception:
+            return None
 
     def _on_train_output(self, proc: QProcess) -> None:
         data = bytes(proc.readAllStandardOutput()).decode("utf-8", errors="replace")
@@ -538,6 +860,13 @@ class MainWindow(QMainWindow):
             self._train_log.appendPlainText(data)
 
     def _on_train_finished(self, code: int) -> None:
+        newest = workflow.find_newest_run(self._last_train_out_dir, self._last_train_profile)
+        if newest is not None:
+            self._latest_run_dir = newest
+            candidate = newest / "coin-segmentation.onnx"
+            if candidate.exists():
+                self._latest_onnx_path = candidate
+            self._train_log.appendPlainText(f"\nLetzter Run: {newest}")
         self._train_log.appendPlainText(f"\n[Prozess beendet, Exit-Code {code}]")
 
     def closeEvent(self, event) -> None:

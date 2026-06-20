@@ -1,4 +1,5 @@
 import { extractCoinFromDataUrl } from '../js/coin-processing.js';
+import { getSelectedModelDescriptor } from '../js/model-registry.js';
 
 let stream = null;
 let video = null;
@@ -38,6 +39,11 @@ export function capture() {
 
 export async function extractCoin(dataUrl) {
     return await extractCoinFromDataUrl(dataUrl);
+}
+
+export async function getActiveModelName() {
+    const descriptor = await getSelectedModelDescriptor();
+    return descriptor?.displayName ?? null;
 }
 
 export function stop() {

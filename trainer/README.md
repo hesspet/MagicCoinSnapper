@@ -2,12 +2,12 @@
 
 ## 1. Kurzbeschreibung
 
-Der Trainer ist die lokale Desktop-/CLI-Komponente von MagicCoinSnapper. Die Smartphone-PWA sammelt Rohbilder und exportiert eine Raw-ZIP. Der Trainer importiert diese ZIP, erlaubt Maskenannotation am Desktop, validiert die Datasets, trainiert ein Segmentierungsmodell und exportiert ONNX fuer die PWA.
+Der Trainer ist die lokale Desktop-/CLI-Komponente von MagicCoinSnapper. Die Smartphone-PWA sammelt Rohbilder und exportiert eine Raw-ZIP. Der Trainer importiert diese ZIP, erlaubt Maskenannotation am Desktop, validiert und splittet Datasets, trainiert Segmentierungsmodelle, exportiert ONNX und uebernimmt Modelle in die PWA.
 
-Die Umsetzung erfolgt in Phasen. Verfuegbar sind jetzt:
+Verfuegbar sind:
 - CLI-Kern: `import-raw`, `validate`, `split`
 - ML-Pipeline: `train`, `evaluate`, `export-onnx`, `package-model`
-- PySide6-Annotationsoberflaeche: `mcs-trainer gui`
+- PySide6-GUI: Import, Annotation, Daten pruefen, Daten aufteilen, Training starten, Modell testen, ONNX exportieren, Modellpaket erstellen, Modell in PWA uebernehmen
 
 ## 2. Voraussetzungen
 
@@ -37,7 +37,17 @@ mcs-trainer --version
 
 ## 3. Schnellstart
 
-Minimale Befehlsfolge vom PWA-Export bis zum fertigen Split:
+GUI-Workflow:
+
+```pwsh
+cd trainer
+python -m pip install -e .[ml,gui]
+mcs-trainer gui
+```
+
+In der GUI: Raw-ZIP importieren, Masken zeichnen, **Daten pruefen**, **Daten aufteilen**, **Training starten**, **Modell testen**, **ONNX exportieren**, **Modellpaket erstellen** und **Modell in PWA uebernehmen**.
+
+CLI-Minimalfolge vom PWA-Export bis zum fertigen Split:
 
 1. PWA-Raw-ZIP in `trainer/data/incoming/` ablegen.
 2. Raw-ZIP importieren:
@@ -268,7 +278,7 @@ mcs-model-<profile>-<version>.zip
 
 ### gui
 
-Startet die PySide6-Annotationsoberflaeche. Benoetigt `pip install -e .[gui]`.
+Startet die PySide6-GUI. Fuer den kompletten Workflow benoetigt sie `pip install -e .[ml,gui]`.
 
 | Flag | Typ | Default | Beschreibung |
 |---|---|---|---|
@@ -290,11 +300,15 @@ Funktionen:
 - Metadatenpanel (Notizen, Tags, Bild ausschliessen).
 - Dataset speichern (Strg+S): schreibt Masken als 8-bit-Graustufen-PNG `{0,255}` und `metadata.json`.
 - Export als `mcs-annotated-dataset-<datasetId>.zip`.
-- Validierung und Training starten (Training als Hintergrundprozess mit Log-Anzeige).
+- Workflow-Aktionen: Daten pruefen, Daten aufteilen, Training starten mit Konfiguration, Modell testen, ONNX exportieren, Modellpaket erstellen, Modell in PWA uebernehmen.
+- Training und Export laufen als Hintergrundprozesse mit Log-Anzeige.
+- Beim Uebernehmen in die PWA installiert die GUI das Modell unter `wwwroot/models/<model-id>/`, aktualisiert `wwwroot/models/manifest.json` (`schemaVersion = mcs-model-index-v1`) und erstellt vor Ersatz vorhandener Modelle Backups nach GUI-Bestaetigung.
+
+Details: `trainer/docs/gui.md` und `trainer/docs/model-management.md`.
 
 ## 5. Workflow
 
-End-to-End-Workflow von der PWA bis zum fertigen ONNX-Modell:
+End-to-End-Workflow von der PWA bis zum in der PWA auswaehlbaren Modell:
 
 1. Rohbilder in der PWA sammeln.
 2. Raw-ZIP aus der PWA exportieren (`mcs-raw-images-v1.zip`).
@@ -318,7 +332,8 @@ End-to-End-Workflow von der PWA bis zum fertigen ONNX-Modell:
 10. `evaluate` ausfuehren (optional) -> Test-Metriken in `eval.json`.
 11. `export-onnx` ausfuehren -> `<run>/coin-segmentation.onnx` (validiert gegen PWA-Vertrag).
 12. `package-model` ausfuehren -> `trainer/model-packages/mcs-model-<profile>-<version>.zip`.
-13. ONNX nach `wwwroot/models/coin-segmentation.onnx` kopieren. Die PWA nutzt es automatisch beim naechsten Scan (Fallback ist die Kreis-/Kontur-Heuristik, falls die Datei fehlt).
+13. Modell in die PWA uebernehmen, bevorzugt ueber die GUI. Ziel ist `wwwroot/models/<model-id>/`; `wwwroot/models/manifest.json` listet die Modelle mit `schemaVersion = mcs-model-index-v1`.
+14. In der PWA unter **Einstellungen** das Scan-Modell auswaehlen. Ohne Manifest nutzt die PWA weiterhin den Legacy-Pfad `wwwroot/models/coin-segmentation.onnx`, falls vorhanden.
 
 ## 6. Datenformate
 
@@ -392,6 +407,36 @@ id, image, mask, width, height, contentType, excluded, notes, tags
 
 Jede Datei enthaelt genau eine Sample-ID pro Zeile (UTF-8). Ausgeschlossene Samples (`excluded = true`) stehen nicht in Splits.
 
+### PWA-Modellindex
+
+Die GUI installiert Modelle unter:
+
+```text
+wwwroot/models/<model-id>/
+  coin-segmentation.onnx
+  model.json
+  metrics.json
+  preprocessing.json
+```
+
+Der Modellindex liegt in `wwwroot/models/manifest.json`:
+
+```json
+{
+  "schemaVersion": "mcs-model-index-v1",
+  "models": [
+    {
+      "id": "general-001",
+      "displayName": "General 001",
+      "path": "models/general-001/coin-segmentation.onnx",
+      "output": { "threshold": 0.5 }
+    }
+  ]
+}
+```
+
+Vor dem Ersetzen eines vorhandenen Modellverzeichnisses oder Manifests legt die GUI nach Bestaetigung ein Backup an.
+
 ## 7. Verzeichnisstruktur
 
 Geplante Struktur des `trainer/`-Verzeichnisses (gem. PROJEKTUEBERSICHT.md):
@@ -402,6 +447,9 @@ trainer/
   README.md
   PROJEKTUEBERSICHT.md
   trainer_plan.md
+  docs/
+    gui.md
+    model-management.md
   src/mcs_trainer/
     app/
     cli/

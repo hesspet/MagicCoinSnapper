@@ -1,4 +1,5 @@
 @page "/settings"
+@implements IAsyncDisposable
 <PageTitle>Einstellungen</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mcs-page">
@@ -19,6 +20,56 @@
 
         <MudPaper Elevation="0" Class="mcs-panel">
             <MudStack Spacing="3">
+                <MudText Typo="Typo.subtitle1">Scan-Modell</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Waehle das ONNX-Modell fuer neue Scans. Ohne Modell bleibt die Heuristik aktiv.
+                </MudText>
+
+                @if (!_modelListLoaded)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                }
+                else if (_models.Length == 0)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                        Kein ONNX-Modell gefunden. Scans nutzen die Heuristik.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudSelect T="string" Value="_selectedModelId" ValueChanged="OnSelectedModelChanged" Label="Modell" Variant="Variant.Outlined" Dense="true" FullWidth="true">
+                        @foreach (var model in _models)
+                        {
+                            <MudSelectItem T="string" Value="@model.Id">@GetModelDisplayName(model)</MudSelectItem>
+                        }
+                    </MudSelect>
+
+                    @if (SelectedModel is not null)
+                    {
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.body2">@GetModelDisplayName(SelectedModel)</MudText>
+                            @if (!string.IsNullOrWhiteSpace(SelectedModel.Description))
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@SelectedModel.Description</MudText>
+                            }
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">ID: @SelectedModel.Id</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Datei: @SelectedModel.Path</MudText>
+                            @if (!string.IsNullOrWhiteSpace(SelectedModel.Version))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Version: @SelectedModel.Version</MudText>
+                            }
+                            @if (SelectedModel.Output?.Threshold is double threshold)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Schwelle: @threshold.ToString("0.###")</MudText>
+                            }
+                        </MudStack>
+                    }
+                }
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Elevation="0" Class="mcs-panel">
+            <MudStack Spacing="3">
                 <MudText Typo="Typo.subtitle1">Expertenmodus</MudText>
                 <MudSwitch T="bool" Value="_expertMode" ValueChanged="OnExpertModeChanged" Color="Color.Primary" Label="Bildersammlung anzeigen" />
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -30,19 +81,72 @@
 </MudContainer>
 
 @code {
+    [Inject] IJSRuntime JS { get; set; } = default!;
     [Inject] AppSettingsService AppSettings { get; set; } = default!;
 
     private bool _expertMode;
+    private bool _modelListLoaded;
+    private string _selectedModelId = string.Empty;
+    private ModelDescriptor[] _models = [];
+    private IJSObjectReference? _modelRegistryModule;
+    private ModelDescriptor? SelectedModel => _models.FirstOrDefault(model => model.Id == _selectedModelId);
 
     protected override async Task OnInitializedAsync()
     {
         await AppSettings.LoadAsync();
         _expertMode = AppSettings.ExpertModeEnabled;
+        _modelRegistryModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/model-registry.js");
+        _models = (await _modelRegistryModule.InvokeAsync<ModelDescriptor[]>("getAvailableModels"))
+            .Where(model => !string.IsNullOrWhiteSpace(model.Id))
+            .ToArray();
+        _selectedModelId = !string.IsNullOrWhiteSpace(AppSettings.SelectedModelId) && _models.Any(model => model.Id == AppSettings.SelectedModelId)
+            ? AppSettings.SelectedModelId!
+            : _models.FirstOrDefault()?.Id ?? string.Empty;
+        _modelListLoaded = true;
     }
 
     private async Task OnExpertModeChanged(bool enabled)
     {
         _expertMode = enabled;
         await AppSettings.SetExpertModeAsync(enabled);
+    }
+
+    private async Task OnSelectedModelChanged(string modelId)
+    {
+        if (string.IsNullOrWhiteSpace(modelId))
+        {
+            return;
+        }
+
+        _selectedModelId = modelId;
+        await AppSettings.SetSelectedModelIdAsync(modelId);
+    }
+
+    private static string GetModelDisplayName(ModelDescriptor model)
+    {
+        return string.IsNullOrWhiteSpace(model.DisplayName) ? model.Id : model.DisplayName;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_modelRegistryModule is not null)
+        {
+            await _modelRegistryModule.DisposeAsync();
+        }
+    }
+
+    private sealed class ModelDescriptor
+    {
+        public string Id { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Version { get; set; } = string.Empty;
+        public string Path { get; set; } = string.Empty;
+        public ModelOutput? Output { get; set; }
+    }
+
+    private sealed class ModelOutput
+    {
+        public double? Threshold { get; set; }
     }
 }

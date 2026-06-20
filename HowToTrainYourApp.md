@@ -12,8 +12,8 @@ Masken sauber zu zeichnen ist dort aber unpraktisch. Mit Maus, grossem Bildschir
 
 - Smartphone: Rohbilder sammeln.
 - Desktop-Trainer: Bilder sichten, Muenze markieren, Metadaten pflegen.
-- Trainingspipeline: Modell trainieren und als ONNX exportieren.
-- PWA: fertiges Modell automatisch fuer den Scan nutzen.
+- Trainingspipeline: Modell trainieren, testen und als ONNX exportieren.
+- PWA: fertiges Modell in den Einstellungen fuer den Scan auswaehlen.
 
 ## Was bedeutet Training jetzt?
 
@@ -21,7 +21,7 @@ Training bedeutet nicht, dass die PWA selbst auf dem Smartphone rechnet und lern
 
 Die PWA liefert nur gute Beispielbilder. Auf dem Desktop entstehen daraus saubere Trainingsdaten: Bild plus Maske plus Metadaten.
 
-Aus diesen Trainingsdaten wird ein Modell gebaut. Dieses Modell wird spaeter in die App gelegt oder als Modellpaket bereitgestellt.
+Aus diesen Trainingsdaten wird ein Modell gebaut. Dieses Modell wird spaeter vom Trainer in die App uebernommen oder als Modellpaket bereitgestellt.
 
 ## Was ist eine Maske?
 
@@ -89,6 +89,9 @@ Dort kannst Du:
 - Bilder ausschliessen.
 - Metadaten pflegen.
 - Trainingsgruppen setzen.
+- Daten pruefen und aufteilen.
+- Training starten und Modell testen.
+- ONNX exportieren, Modellpaket erstellen und das Modell in die PWA uebernehmen.
 
 Das ist der richtige Ort fuer genaue Maskenarbeit.
 
@@ -155,13 +158,16 @@ mcs-annotated-dataset-v1.zip
   metadata.json
 ```
 
-Danach laeuft der Trainingsprozess. Daraus entsteht ein ONNX-Modell:
+Danach laeuft der Trainingsprozess. Daraus entsteht ein ONNX-Modell und optional ein Modellpaket:
 
 ```text
 coin-segmentation.onnx
+mcs-model-<profile>-<version>.zip
 ```
 
-Dieses Modell kann die PWA fuer den automatischen Scan verwenden.
+Beim Uebernehmen in die PWA installiert der Trainer das Modell unter `wwwroot/models/<model-id>/` und aktualisiert `wwwroot/models/manifest.json` (`schemaVersion = mcs-model-index-v1`). Wenn ein vorhandenes Modell ersetzt wird, erstellt die GUI nach Bestaetigung ein Backup.
+
+In MagicCoinSnapper waehlst Du das Scan-Modell unter **Einstellungen**. Ohne Manifest nutzt die App weiterhin den alten Pfad `wwwroot/models/coin-segmentation.onnx`, falls diese Datei vorhanden ist.
 
 ## Datenschutz
 
@@ -171,4 +177,4 @@ Erst wenn Du ein ZIP exportierst und weitergibst, verlassen die Bilder Dein Gera
 
 ## Kurz gesagt
 
-Du sammelst auf dem Smartphone echte Beispielbilder. Auf dem Desktop werden sie sauber markiert. Daraus entsteht ein besseres Modell. Die Vorfuehrapp bleibt schlank, schnell und offlinefaehig.
+Du sammelst auf dem Smartphone echte Beispielbilder. Auf dem Desktop werden sie sauber markiert, trainiert und als Modell in die PWA uebernommen. Die Vorfuehrapp bleibt schlank, schnell und offlinefaehig.

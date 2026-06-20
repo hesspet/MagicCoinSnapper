@@ -47,11 +47,14 @@ mcs-trainer package-model --onnx .\exports\coin-segmentation.onnx
 
 ## PWA-Kompatibilitaet
 
-Die PWA erwartet vorerst:
+Die PWA liest Modelle aus dem Manifest:
 
 ```text
-wwwroot/models/coin-segmentation.onnx
+wwwroot/models/manifest.json
+wwwroot/models/<model-id>/coin-segmentation.onnx
 ```
+
+Das Manifest verwendet `schemaVersion = mcs-model-index-v1`. Ohne Manifest bleibt `wwwroot/models/coin-segmentation.onnx` als Legacy-Fallback aktiv.
 
 ONNX-Vertrag:
 
@@ -74,4 +77,4 @@ Alle MVP-Phasen (1-10) sind umgesetzt und verifiziert. End-to-end-Smoke (validat
 - Phase 7: Trainingspipeline mit PyTorch (`train`, `evaluate`, U-Net, BCE+Adam, Checkpoints).
 - Phase 8: ONNX-Export und ONNX-Validierung (`export-onnx`, feste Shapes, onnxsim).
 - Phase 9: Modellpaket-Erzeugung (`package-model`, zip mit Metadaten und SHA256SUMS).
-- Phase 10: PWA-Smoke-Test, ONNX nach `wwwroot/models/coin-segmentation.onnx` kopiert (aktuell Smoke-Modell, noch kein Produktionsmodell).
+- Phase 10: PWA-Smoke-Test und Modelluebernahme mit Manifest, Modellverzeichnis und Legacy-Fallback (aktuell Smoke-Modell, noch kein Produktionsmodell).

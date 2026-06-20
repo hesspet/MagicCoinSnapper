@@ -178,7 +178,8 @@ mcs-trainer gui [--dataset <dir>]
 - **U-Net** (compact, base=32, sigmoid output), BCEWithLogitsLoss + Adam, best-by-val-dice Checkpoints, auto-inkrementierende Run-Verzeichnisse.
 - **ONNX-Export** mit festen Shapes [1,3,512,512]->[1,1,512,512], Input-Name "input", Output-Name "mask", onnxsim-Vereinfachung.
 - **Modellpaket** als zip mit onnx, model.json, metrics.json, preprocessing.json, README.md, SHA256SUMS.txt.
-- **GUI**: ImageViewer (Zoom/Pan), MaskEditor (Pinsel/Radierer/Ellipse, Undo/Redo), MetadataPanel (notes/tags/excluded), MainWindow mit Toolbar, Tastatur-Navigation und QProcess-basiertem Training.
+- **GUI**: ImageViewer (Zoom/Pan), MaskEditor (Pinsel/Radierer/Ellipse, Undo/Redo), MetadataPanel (notes/tags/excluded), MainWindow mit Toolbar, Tastatur-Navigation, QProcess-basiertem Training/Export und PWA-Modelluebernahme.
+- **Modellverwaltung**: Modelle werden unter `wwwroot/models/<model-id>/` installiert; `wwwroot/models/manifest.json` nutzt `schemaVersion = mcs-model-index-v1`; PWA-Settings bieten die Scan-Modell-Auswahl mit Legacy-Fallback auf `wwwroot/models/coin-segmentation.onnx`.
 
 ### Aufgetretene Probleme & Fixes
 
@@ -188,8 +189,8 @@ mcs-trainer gui [--dataset <dir>]
 
 - 28 Tests via `python -m pytest -q` aus `trainer/` gruen (Import, Raw-/Annotated-Validierung, Splits, CLI-Smoke).
 - End-to-End-Smoke: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], Bereich 0..1) -> package-model.
-- ONNX-Modellvertrag gegen PWA validiert; Modell nach `wwwroot/models/coin-segmentation.onnx` kopiert.
+- ONNX-Modellvertrag gegen PWA validiert; Modelluebernahme in `wwwroot/models/<model-id>/` mit Manifest und Backup-Verhalten dokumentiert.
 
 ### Offen
 
-- Das aktuell in `wwwroot/models/coin-segmentation.onnx` liegende Modell ist das Smoke-Test-Modell (trainiert auf 12 synthetischen 64x64-Kreis-Samples) und KEIN Produktionsmodell. Es muss mit echten Muenzbildern trainiert und ersetzt werden.
+- Das Smoke-Test-Modell ist KEIN Produktionsmodell. Es muss mit echten Muenzbildern trainiert und ueber den Manifest-basierten Modellworkflow ersetzt werden.

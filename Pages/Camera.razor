@@ -7,6 +7,10 @@
         <MudText Typo="Typo.body2" Color="Color.Secondary">
             Muenze in die Hand legen, Bild aufnehmen oder aus der Galerie laden.
         </MudText>
+        @if (!string.IsNullOrWhiteSpace(_activeModelStatus))
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@_activeModelStatus</MudText>
+        }
     </MudStack>
 
     <MudPaper Elevation="0" Class="camera-stage">
@@ -109,6 +113,7 @@
     private string? _previewUrl;
     private string? _coinPreviewUrl;
     private string? _scanStatus;
+    private string? _activeModelStatus;
     private IBrowserFile? _uploadedFile;
     private IJSObjectReference? _module;
     private const string _videoId = "cam";
@@ -124,6 +129,9 @@
         if (firstRender)
         {
             _module = await JS.InvokeAsync<IJSObjectReference>("import", "./Pages/Camera.razor.js");
+            var activeModelName = await _module.InvokeAsync<string?>("getActiveModelName");
+            _activeModelStatus = string.IsNullOrWhiteSpace(activeModelName) ? "Scan-Modell: Heuristik" : $"Scan-Modell: {activeModelName}";
+            StateHasChanged();
         }
     }
 
@@ -244,7 +252,7 @@
             var bytes = GetBytesFromDataUrl(result.DataUrl);
             _coinPreviewUrl = result.DataUrl;
             _hasCoinImage = true;
-            _scanStatus = result.UsedOnnx ? "Muenze erkannt" : "Heuristik-Ergebnis";
+            _scanStatus = result.UsedOnnx && !string.IsNullOrWhiteSpace(result.ModelDisplayName) ? $"Muenze erkannt: {result.ModelDisplayName}" : result.UsedOnnx ? "Muenze erkannt" : "Heuristik-Ergebnis";
             ImageState.SetExtractedImage(bytes, "image/png");
             Snackbar.Add(result.Message ?? "Muenze freigestellt.", result.UsedOnnx ? Severity.Success : Severity.Info);
         }
@@ -298,5 +306,5 @@
         }
     }
 
-    private sealed record CoinExtractionResult(string DataUrl, bool UsedOnnx, double Confidence, int Width, int Height, string? Message);
+    private sealed record CoinExtractionResult(string DataUrl, bool UsedOnnx, double Confidence, int Width, int Height, string? Message, string? ModelDisplayName);
 }

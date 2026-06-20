@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from mcs_trainer import __version__
+from mcs_trainer.ml.model_registry import build_model_metadata, normalize_model_metadata
 
 
 def _sha256(path: Path) -> str:
@@ -18,7 +19,12 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def package_model(onnx_path: Path, run_dir: Path, out_dir: Path) -> Path:
+def package_model(
+    onnx_path: Path,
+    run_dir: Path,
+    out_dir: Path,
+    metadata: dict | None = None,
+) -> Path:
     onnx_path = Path(onnx_path).resolve()
     run_dir = Path(run_dir).resolve()
     out_dir = Path(out_dir)
@@ -38,27 +44,16 @@ def package_model(onnx_path: Path, run_dir: Path, out_dir: Path) -> Path:
     onnx_copy = staging / "coin-segmentation.onnx"
     shutil.copy2(onnx_path, onnx_copy)
 
-    model_json = {
-        "profile": profile,
-        "version": __version__,
-        "createdAt": datetime.now(timezone.utc).isoformat(),
-        "input": {
-            "name": "input",
-            "dtype": "float32",
-            "shape": [1, 3, 512, 512],
-            "layout": "NCHW",
-            "colorOrder": "RGB",
-            "normalization": "/255",
-            "range": [0.0, 1.0],
-        },
-        "output": {
-            "name": "mask",
-            "dtype": "float32",
-            "shape": [1, 1, 512, 512],
-            "range": [0.0, 1.0],
-            "threshold": 0.5,
-        },
-    }
+    if metadata is None:
+        model_json = build_model_metadata(
+            model_id=f"coin-segmentation-{profile}",
+            display_name=f"Coin Segmentation ({profile})",
+            profile=profile,
+            version=__version__,
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+    else:
+        model_json = normalize_model_metadata(metadata, profile=profile)
     (staging / "model.json").write_text(json.dumps(model_json, indent=2), encoding="utf-8")
 
     metrics_src = run_dir / "metrics.json"
@@ -97,7 +92,7 @@ ONNX-Modell fuer Muenz-Segmentierung (MagicCoinSnapper PWA).
         lines.append(f"{_sha256(fp)}  {name}")
     (staging / "SHA256SUMS.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    zip_name = f"mcs-model-{profile}-{__version__}.zip"
+    zip_name = f"mcs-model-{model_json['id']}-{model_json['version']}.zip"
     zip_path = out_dir / zip_name
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for name in entries + ["SHA256SUMS.txt"]:
