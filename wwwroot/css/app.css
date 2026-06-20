@@ -181,6 +181,25 @@ code {
     border-radius: var(--mcs-radius-md);
 }
 
+.mcs-panel-nested {
+    padding: var(--mcs-space-4);
+    background: var(--mcs-bg-soft);
+    border: 1px solid var(--mcs-border);
+    border-radius: var(--mcs-radius-sm);
+}
+
+.mcs-link-icon {
+    margin-left: var(--mcs-space-1);
+    vertical-align: middle;
+    color: var(--mcs-gold-strong);
+}
+
+.mud-link.mcs-link-row {
+    display: inline-flex;
+    align-items: center;
+    min-height: 48px;
+}
+
 .mcs-kicker {
     color: var(--mcs-gold-strong);
     font-size: 0.75rem;
