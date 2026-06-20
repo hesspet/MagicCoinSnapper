@@ -74,12 +74,6 @@
                     </CustomContent>
                 </MudFileUpload>
             </MudStack>
-            @if (_hasCoinImage && Settings.ExpertModeEnabled)
-            {
-                <MudButton Variant="Variant.Outlined" Href="collection" FullWidth="true" StartIcon="@Icons.Material.Filled.Collections">
-                    Rohbild sammeln
-                </MudButton>
-            }
             <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="OnClear" FullWidth="true" StartIcon="@Icons.Material.Filled.Delete">
                 Bild loeschen
             </MudButton>

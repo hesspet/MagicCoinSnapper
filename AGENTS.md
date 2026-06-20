@@ -13,9 +13,9 @@
 
 ## CHANGE / EDIT MODE
 
-- Never implement features yourself when possible - use sub-agents!
+- Never implement features or fixes yourself when possible - use sub-agents!
 - Identify changes from the plan that can be implemented in parallel, and use sub-agents to implement the features efficiently
-- When using sub-agents to implement features, act as a coordinator only
+- When using sub-agents to implement features or fix bugs, act as a coordinator only
 - Use the best model for the task - premium models for complex tasks (like coding) and mid-tier models for simpler tasks, like documentation
 - After completing features (large or small), always run commands like lint, type check and next build to check code quality
 
@@ -36,12 +36,6 @@
 * @trainer/README.md
 * @trainer/PROJEKTUEBERSICHT.md
 
-## Trainer-Tests
+## GIT
 
-```
-cd trainer
-python -m pip install -e ".[dev,ml,gui]"
-python -m pytest -q
-mcs-trainer --help
-```
-
+* Do not commit yourself, unless the user asks you to do
