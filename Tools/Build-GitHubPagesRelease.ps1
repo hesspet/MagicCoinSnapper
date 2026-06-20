@@ -25,6 +25,25 @@ function Set-BaseHref {
     )
 }
 
+function Set-ServiceWorkerBase {
+    param(
+        [string]$Content,
+        [string]$BasePath
+    )
+
+    $basePattern = 'const base = "[^"]*";'
+    if ($Content -notmatch $basePattern) {
+        throw "Im service-worker.published.js wurde kein const base = `"...`" gefunden."
+    }
+
+    return [System.Text.RegularExpressions.Regex]::Replace(
+        $Content,
+        $basePattern,
+        "const base = `"$BasePath`";",
+        1
+    )
+}
+
 if ([string]::IsNullOrWhiteSpace($RepositoryName)) {
     throw "Der Repository-Name darf nicht leer sein."
 }
@@ -52,7 +71,9 @@ if ((Test-Path $resolvedOutputFullPath) -and -not $SkipPublish) {
 $basePath = "/$RepositoryName/"
 $utf8WithoutBom = [System.Text.UTF8Encoding]::new($false)
 $sourceIndexPath = Join-Path $projectRoot "wwwroot/index.html"
+$sourceServiceWorkerPath = Join-Path $projectRoot "wwwroot/service-worker.published.js"
 $originalSourceIndexHtml = [System.IO.File]::ReadAllText($sourceIndexPath, [System.Text.Encoding]::UTF8)
+$originalSourceServiceWorker = [System.IO.File]::ReadAllText($sourceServiceWorkerPath, [System.Text.Encoding]::UTF8)
 
 if (-not $SkipPublish) {
     $publishArguments = @(
@@ -68,6 +89,9 @@ if (-not $SkipPublish) {
         $buildSourceIndexHtml = Set-BaseHref -Html $originalSourceIndexHtml -BasePath $basePath
         [System.IO.File]::WriteAllText($sourceIndexPath, $buildSourceIndexHtml, $utf8WithoutBom)
 
+        $buildSourceServiceWorker = Set-ServiceWorkerBase -Content $originalSourceServiceWorker -BasePath $basePath
+        [System.IO.File]::WriteAllText($sourceServiceWorkerPath, $buildSourceServiceWorker, $utf8WithoutBom)
+
         & dotnet @publishArguments
         if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
@@ -75,6 +99,7 @@ if (-not $SkipPublish) {
     }
     finally {
         [System.IO.File]::WriteAllText($sourceIndexPath, $originalSourceIndexHtml, $utf8WithoutBom)
+        [System.IO.File]::WriteAllText($sourceServiceWorkerPath, $originalSourceServiceWorker, $utf8WithoutBom)
     }
 }
 
@@ -91,6 +116,16 @@ $indexHtml = Get-Content $indexPath -Raw -Encoding UTF8
 $expectedBaseHref = "<base href=`"$basePath`" />"
 if ($indexHtml -notmatch [System.Text.RegularExpressions.Regex]::Escape($expectedBaseHref)) {
     throw "Der veröffentlichte base-href ist nicht korrekt: $basePath"
+}
+
+$publishedServiceWorkerPath = Join-Path $publishPath "service-worker.js"
+if (-not (Test-Path $publishedServiceWorkerPath)) {
+    throw "Der veröffentlichte service-worker.js wurde nicht gefunden: $publishedServiceWorkerPath"
+}
+$publishedServiceWorker = Get-Content $publishedServiceWorkerPath -Raw -Encoding UTF8
+$expectedServiceWorkerBase = "const base = `"$basePath`";"
+if ($publishedServiceWorker -notmatch [System.Text.RegularExpressions.Regex]::Escape($expectedServiceWorkerBase)) {
+    throw "Der veröffentlichte service-worker base ist nicht korrekt: $basePath"
 }
 
 Copy-Item -Path $indexPath -Destination $notFoundPath -Force
