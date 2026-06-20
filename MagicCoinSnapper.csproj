@@ -5,7 +5,18 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+    <BuildVersionBase Condition=" '$(BuildVersionBase)' == '' ">1.0.0</BuildVersionBase>
   </PropertyGroup>
+
+  <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">
+    <PropertyGroup>
+      <_BuildInfoFile>$(MSBuildProjectDirectory)/$(IntermediateOutputPath)BuildInfo.cs</_BuildInfoFile>
+    </PropertyGroup>
+    <Exec Command="pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/Tools/GenerateBuildInfo.ps1&quot; -OutputFile &quot;$(_BuildInfoFile)&quot; -Version $(BuildVersionBase)" ConsoleToMSBuild="true" />
+    <ItemGroup>
+      <Compile Include="$(_BuildInfoFile)" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <PackageReference Include="MudBlazor" Version="9.5.0" />

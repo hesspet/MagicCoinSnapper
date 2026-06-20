@@ -21,5 +21,17 @@
                 </MudText>
             </MudStack>
         </MudPaper>
+
+        <MudPaper Elevation="0" Class="mcs-panel">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Build</MudText>
+                <MudText Typo="Typo.body2">
+                    Version @BuildInfo.BuildVersion
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Erstellt am @BuildInfo.BuildDate um @BuildInfo.BuildTime Uhr (Europe/Berlin)
+                </MudText>
+            </MudStack>
+        </MudPaper>
     </MudStack>
 </MudContainer>
