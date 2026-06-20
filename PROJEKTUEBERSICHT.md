@@ -7,8 +7,9 @@
 ## Aktueller Stand
 
 - **Kamera-Workflow** vollständig: Rückkamera (`getUserMedia`), Foto aufnehmen (PNG), Upload (PNG/JPEG, max 10 MB), Vorschau, Speichern (Download), Löschen.
-- **Bildbereitstellung** über `ImageStateService`: hält genau ein aktuelles Bild im Speicher, `OnChanged`-Event für spätere Scan-Pipeline.
-- **Münzerkennung / Scan-Logik** ist noch Platzhalter (`Bild scannen` zeigt Snackbar-Hinweis).
+- **Bildbereitstellung** über `ImageStateService`: hält Originalbild und optional ein freigestelltes Münzbild im Speicher.
+- **Münzerkennung / Scan-Logik** vorbereitet: Browserseitige ONNX-Pipeline mit lokalem Heuristik-Fallback erzeugt ein eng zugeschnittenes PNG mit transparentem Hintergrund.
+- **Bildersammlung** vorbereitet: Expertenmodus mit Rohbildsammlung, IndexedDB-Speicherung und ZIP-Export fuer den separaten Desktop-Trainer.
 - **Settings** strukturell vorbereitet, funktional noch Platzhalter.
 - Build: `dotnet build` kompiliert fehlerfrei, 0 Fehler, 0 Warnungen.
 
@@ -19,7 +20,7 @@
 | Framework         | Blazor WebAssembly (`Microsoft.NET.Sdk.BlazorWebAssembly`) |
 | SDK / Laufzeit    | .NET 10 (`net10.0`, LTS)                         |
 | UI-Bibliothek     | MudBlazor 9.5.0                                  |
-| Pakete            | `Microsoft.AspNetCore.Components.WebAssembly` 10.0.9 + `.DevServer` |
+| Pakete            | `Microsoft.AspNetCore.Components.WebAssembly` 10.0.9 + `.DevServer`, `onnxruntime-web`, `jszip` |
 | Sprachfeatures    | Nullable enabled, ImplicitUsings enabled         |
 | PWA               | Manifest + Service Worker (Dev/Published)        |
 | Styling           | MudBlazor, keine Bootstrap/CDN-Fonts, System-Font-Stack |
@@ -35,13 +36,23 @@ Layout/
   MainLayout.razor.css → Shell-Styles (Safe Areas, Bottom-Action, Hintergrund)
 Pages/
   Index.razor   → /           Hero, Statuskarten, Scan-Button
-  Camera.razor  → /camera     Kamera/Upload/Vorschau/Speichern + collocated JS-Modul
-  Camera.razor.js             getUserMedia (Rückseite), Capture, Blob-Download
+  Camera.razor  → /camera     Kamera/Upload/Vorschau/Scan/Speichern + collocated JS-Modul
+  Camera.razor.js             getUserMedia (Rückseite), Capture, Scan-Hook, Blob-Download
+  Collection.razor → /collection  Rohbilder sammeln und als ZIP exportieren (Expertenmodus)
+  Collection.razor.js             IndexedDB fuer Rohbilder, Raw-ZIP-Export
   Settings.razor → /settings  Platzhalter mit Infohinweis
   Ueber.razor   → /ueber      Zweck- und Technikbeschreibung
   NotFound.razor → /not-found 404
+Models/
+  RawImageSample.cs → Metadaten fuer Rohbilder und Raw-ZIP-Export
 Services/
-  ImageStateService.cs → byte[]+ContentType+Source, OnChanged-Event
+  ImageStateService.cs → Originalbild + freigestelltes Ergebnis, OnChanged-Event
+  AppSettingsService.cs → lokaler Expertenmodus via localStorage
+  RawImageCollectionService.cs → JS-Interop-Wrapper fuer IndexedDB-Rohbilder
+wwwroot/
+  js/                  → neutrale Coin-Processing-/ONNX-Heuristik-Pipeline
+  models/              → erwarteter Pfad fuer coin-segmentation.onnx
+  vendor/              → lokale onnxruntime-web- und jszip-Assets
 ```
 
 ## Design- und UI-Kontext
@@ -58,6 +69,7 @@ Voraussetzung: .NET 10 SDK installiert.
 dotnet build                              # Build verifizieren
 dotnet run --project MagicCoinSnapper.csproj  # Dev-Server (Hot Reload)
 dotnet publish -c Release                 # PWA-Ausgabe (statisch hostbar)
+npm install                               # JS-Abhaengigkeiten installieren und wwwroot/vendor erzeugen
 ```
 
 ```pwsh

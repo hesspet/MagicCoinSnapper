@@ -2,3 +2,5 @@
 bin
 obj
 graphify-out
+node_modules
+npm-debug.log*

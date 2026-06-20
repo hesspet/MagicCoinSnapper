@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 
 <MudThemeProvider Theme="_theme" IsDarkMode="true" />
 <MudPopoverProvider />
@@ -23,6 +24,10 @@
         <MudNavMenu Class="mcs-nav-menu">
             <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Startseite</MudNavLink>
             <MudNavLink Href="/camera" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PhotoCamera">Scan</MudNavLink>
+            @if (Settings.ExpertModeEnabled)
+            {
+                <MudNavLink Href="/collection" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Collections">Bildersammlung</MudNavLink>
+            }
             <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Einstellungen</MudNavLink>
             <MudNavLink Href="/ueber" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Info">Ueber</MudNavLink>
         </MudNavMenu>
@@ -42,6 +47,8 @@
 </MudLayout>
 
 @code {
+    [Inject] AppSettingsService Settings { get; set; } = default!;
+
     private bool _drawerOpen = false;
 
     private readonly MudTheme _theme = new()
@@ -74,5 +81,18 @@
         }
     };
 
+    protected override async Task OnInitializedAsync()
+    {
+        Settings.OnChanged += OnSettingsChanged;
+        await Settings.LoadAsync();
+    }
+
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void OnSettingsChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Settings.OnChanged -= OnSettingsChanged;
+    }
 }

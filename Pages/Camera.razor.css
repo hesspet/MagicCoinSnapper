@@ -54,6 +54,14 @@
     object-fit: contain;
 }
 
+.coin-result-image {
+    padding: var(--mcs-space-4);
+    background:
+        radial-gradient(circle at 50% 50%, rgba(216, 168, 63, 0.12), transparent 12rem),
+        #050507;
+    object-fit: contain;
+}
+
 .camera-empty {
     display: flex;
     flex-direction: column;

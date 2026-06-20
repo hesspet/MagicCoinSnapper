@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "scripts": {
+    "setup": "npm install",
+    "copy:vendor": "node -e \"const fs=require('fs');const path=require('path');const copies=[['node_modules/onnxruntime-web/dist','wwwroot/vendor/onnxruntime-web'],['node_modules/jszip/dist','wwwroot/vendor/jszip']];for(const [src,dst] of copies){if(!fs.existsSync(src)){throw new Error('Quelle fehlt: '+src)}fs.rmSync(dst,{recursive:true,force:true});fs.mkdirSync(path.dirname(dst),{recursive:true});fs.cpSync(src,dst,{recursive:true});console.log(src+' -> '+dst)}\"",
+    "postinstall": "npm run copy:vendor"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "onnxruntime-web": "^1.22.0"
+  }
+}

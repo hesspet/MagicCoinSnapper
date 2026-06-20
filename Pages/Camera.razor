@@ -14,7 +14,7 @@
 
         @if (_hasImage && !_livePreview)
         {
-            <MudImage Src="@_previewUrl" Fluid="true" ObjectFit="ObjectFit.Contain" Alt="Aufgenommenes Bild" Class="preview-image" />
+            <MudImage Src="@(_hasCoinImage ? _coinPreviewUrl : _previewUrl)" Fluid="true" ObjectFit="ObjectFit.Contain" Alt="@(_hasCoinImage ? "Freigestellte Muenze" : "Aufgenommenes Bild")" Class="@PreviewImageClass" />
         }
 
         @if (!_livePreview && !_hasImage)
@@ -34,6 +34,13 @@
                 Hand ruhig halten. Muenze sichtbar platzieren.
             </div>
         }
+
+        @if (_hasImage && !_livePreview && !string.IsNullOrWhiteSpace(_scanStatus))
+        {
+            <div class="camera-overlay">
+                @_scanStatus
+            </div>
+        }
     </MudPaper>
 
     <MudPaper Elevation="0" Class="camera-actions">
@@ -48,12 +55,12 @@
         }
         else if (_hasImage)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnScan" FullWidth="true" StartIcon="@Icons.Material.Filled.AutoAwesome">
-                Bild scannen
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnScan" Disabled="@_isBusy" FullWidth="true" StartIcon="@Icons.Material.Filled.AutoAwesome">
+                @(_hasCoinImage ? "Erneut scannen" : "Bild scannen")
             </MudButton>
             <MudStack Row="true" Spacing="2" Class="camera-action-row">
-                <MudButton Variant="Variant.Outlined" OnClick="OnSave" FullWidth="true" StartIcon="@Icons.Material.Filled.Download">
-                    Speichern
+                <MudButton Variant="Variant.Outlined" OnClick="OnSave" Disabled="@_isBusy" FullWidth="true" StartIcon="@Icons.Material.Filled.Download">
+                    @(_hasCoinImage ? "Muenze speichern" : "Speichern")
                 </MudButton>
                 <MudFileUpload T="IBrowserFile" Files="_uploadedFile" FilesChanged="@((IBrowserFile? f) => OnFileSelected(f))" Accept="image/png,image/jpeg" MaxFileSize="10485760" Class="camera-upload">
                     <CustomContent Context="uploader">
@@ -63,6 +70,12 @@
                     </CustomContent>
                 </MudFileUpload>
             </MudStack>
+            @if (_hasCoinImage && Settings.ExpertModeEnabled)
+            {
+                <MudButton Variant="Variant.Outlined" Href="/collection" FullWidth="true" StartIcon="@Icons.Material.Filled.Collections">
+                    Rohbild sammeln
+                </MudButton>
+            }
             <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="OnClear" FullWidth="true" StartIcon="@Icons.Material.Filled.Delete">
                 Bild loeschen
             </MudButton>
@@ -86,15 +99,25 @@
 @code {
     [Inject] IJSRuntime JS { get; set; } = default!;
     [Inject] ImageStateService ImageState { get; set; } = default!;
+    [Inject] AppSettingsService Settings { get; set; } = default!;
     [Inject] ISnackbar Snackbar { get; set; } = default!;
 
     private bool _livePreview;
     private bool _isBusy;
     private bool _hasImage;
+    private bool _hasCoinImage;
     private string? _previewUrl;
+    private string? _coinPreviewUrl;
+    private string? _scanStatus;
     private IBrowserFile? _uploadedFile;
     private IJSObjectReference? _module;
     private const string _videoId = "cam";
+    private string PreviewImageClass => _hasCoinImage ? "preview-image coin-result-image" : "preview-image";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Settings.LoadAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -170,18 +193,27 @@
     {
         _previewUrl = $"data:{contentType};base64,{Convert.ToBase64String(bytes)}";
         _hasImage = true;
+        _hasCoinImage = false;
+        _coinPreviewUrl = null;
+        _scanStatus = null;
         ImageState.SetImage(bytes, contentType, source);
     }
 
     private async Task OnSave()
     {
         if (!_hasImage) return;
-        var filename = ImageState.ContentType == "image/png" ? "magiccoinsnapper.png" : "magiccoinsnapper.jpg";
-        var ms = new MemoryStream(ImageState.ImageBytes!);
+        var bytes = _hasCoinImage && ImageState.ExtractedImageBytes is not null
+            ? ImageState.ExtractedImageBytes
+            : ImageState.ImageBytes!;
+        var contentType = _hasCoinImage && !string.IsNullOrWhiteSpace(ImageState.ExtractedContentType)
+            ? ImageState.ExtractedContentType!
+            : ImageState.ContentType!;
+        var filename = _hasCoinImage ? "magiccoinsnapper-coin.png" : contentType == "image/png" ? "magiccoinsnapper.png" : "magiccoinsnapper.jpg";
+        var ms = new MemoryStream(bytes);
         var streamRef = new DotNetStreamReference(ms);
         try
         {
-            await _module!.InvokeVoidAsync("downloadFromStream", streamRef, filename, ImageState.ContentType);
+            await _module!.InvokeVoidAsync("downloadFromStream", streamRef, filename, contentType);
         }
         finally
         {
@@ -192,14 +224,45 @@
     private void OnClear()
     {
         _previewUrl = null;
+        _coinPreviewUrl = null;
+        _scanStatus = null;
         _hasImage = false;
+        _hasCoinImage = false;
         _uploadedFile = null;
         ImageState.Clear();
     }
 
-    private void OnScan()
+    private async Task OnScan()
     {
-        Snackbar.Add("Scan-Funktion folgt später.", Severity.Info);
+        if (!_hasImage || string.IsNullOrWhiteSpace(_previewUrl) || _module is null) return;
+
+        _isBusy = true;
+        _scanStatus = "Scan laeuft";
+        try
+        {
+            var result = await _module.InvokeAsync<CoinExtractionResult>("extractCoin", _previewUrl);
+            var bytes = GetBytesFromDataUrl(result.DataUrl);
+            _coinPreviewUrl = result.DataUrl;
+            _hasCoinImage = true;
+            _scanStatus = result.UsedOnnx ? "Muenze erkannt" : "Heuristik-Ergebnis";
+            ImageState.SetExtractedImage(bytes, "image/png");
+            Snackbar.Add(result.Message ?? "Muenze freigestellt.", result.UsedOnnx ? Severity.Success : Severity.Info);
+        }
+        catch (JSException ex)
+        {
+            _scanStatus = "Scan fehlgeschlagen";
+            Snackbar.Add($"Scan fehlgeschlagen: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private static byte[] GetBytesFromDataUrl(string dataUrl)
+    {
+        var comma = dataUrl.IndexOf(',');
+        return Convert.FromBase64String(dataUrl[(comma + 1)..]);
     }
 
     private void ShowCameraError(JSException ex)
@@ -234,4 +297,6 @@
             _module = null;
         }
     }
+
+    private sealed record CoinExtractionResult(string DataUrl, bool UsedOnnx, double Confidence, int Width, int Height, string? Message);
 }

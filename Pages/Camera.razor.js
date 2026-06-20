@@ -1,3 +1,5 @@
+import { extractCoinFromDataUrl } from '../js/coin-processing.js';
+
 let stream = null;
 let video = null;
 
@@ -34,6 +36,10 @@ export function capture() {
     return canvas.toDataURL('image/png');
 }
 
+export async function extractCoin(dataUrl) {
+    return await extractCoinFromDataUrl(dataUrl);
+}
+
 export function stop() {
     if (stream) {
         stream.getTracks().forEach(t => t.stop());
@@ -54,7 +60,7 @@ export async function downloadFromStream(streamRef, filename, contentType) {
         a.href = url;
         document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
         document.body.removeChild(a);
     } finally {
         streamRef.dispose();

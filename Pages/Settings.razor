@@ -11,13 +11,38 @@
         <MudPaper Elevation="0" Class="mcs-panel">
             <MudStack Spacing="3">
                 <MudText Typo="Typo.subtitle1">Buehnenbetrieb</MudText>
-                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
-                    Die Einstellungen sind vorbereitet. Konkrete Optionen werden mit der Scan-Pipeline ergaenzt.
-                </MudAlert>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
                     Geplant sind blendarmes Verhalten, Kamera-Vorgaben und Ergebnisdarstellung fuer den Einsatz am Smartphone.
                 </MudText>
             </MudStack>
         </MudPaper>
+
+        <MudPaper Elevation="0" Class="mcs-panel">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.subtitle1">Expertenmodus</MudText>
+                <MudSwitch T="bool" Value="_expertMode" ValueChanged="OnExpertModeChanged" Color="Color.Primary" Label="Bildersammlung anzeigen" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Aktiviert den lokalen Menuepunkt fuer Rohbilder, die Du als ZIP fuer das Desktop-Training exportieren kannst.
+                </MudText>
+            </MudStack>
+        </MudPaper>
     </MudStack>
 </MudContainer>
+
+@code {
+    [Inject] AppSettingsService AppSettings { get; set; } = default!;
+
+    private bool _expertMode;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AppSettings.LoadAsync();
+        _expertMode = AppSettings.ExpertModeEnabled;
+    }
+
+    private async Task OnExpertModeChanged(bool enabled)
+    {
+        _expertMode = enabled;
+        await AppSettings.SetExpertModeAsync(enabled);
+    }
+}
