@@ -25,6 +25,11 @@ async function onInstall(event) {
         .filter(asset => !offlineAssetsExclude.some(pattern => pattern.test(asset.url)))
         .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
     await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
+
+    // Neue SW-Version sofort aktivieren, auch wenn noch Clients offen sind.
+    // Ohne skipWaiting bliebe ein wartender SW bei installierter PWA ewig im
+    // "waiting"-Zustand und Nutzer wuerden Updates nie erhalten.
+    self.skipWaiting();
 }
 
 async function onActivate(event) {
@@ -35,6 +40,10 @@ async function onActivate(event) {
     await Promise.all(cacheKeys
         .filter(key => key.startsWith(cacheNamePrefix) && key !== cacheName)
         .map(key => caches.delete(key)));
+
+    // Bestehende Clients sofort vom neuen SW steuern lassen, damit beim
+    // naechsten Reload garantiert die neuen Assets ausgeliefert werden.
+    await self.clients.claim();
 }
 
 async function onFetch(event) {
