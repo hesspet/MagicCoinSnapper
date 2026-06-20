@@ -69,6 +69,8 @@ export async function downloadFromStream(streamRef, filename, contentType) {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         document.body.removeChild(a);
     } finally {
-        streamRef.dispose();
+        try { streamRef.dispose?.(); } catch {}
+        try { streamRef.free?.(); } catch {}
+        try { await streamRef.disposeAsync?.(); } catch {}
     }
 }
