@@ -128,7 +128,44 @@ if ($publishedServiceWorker -notmatch [System.Text.RegularExpressions.Regex]::Es
     throw "Der veröffentlichte service-worker base ist nicht korrekt: $basePath"
 }
 
-Copy-Item -Path $indexPath -Destination $notFoundPath -Force
+# SPA-Fallback für GitHub Pages: Deep-Links (z.B. /MagicCoinSnapper/camera) werden von
+# GitHub Pages mit 404 beantwortet, weil es keine physische Datei gibt. Die 404.html leitet
+# daher auf index.html um und codiert den Original-Pfad. index.html stellt die URL vor dem
+# Blazor-Boot wieder her, sodass der Blazor-Router die richtige Route matcht.
+$pathSegmentsToKeep = ($basePath.Trim('/') -split '/' | Where-Object { $_ }).Count
+
+$notFoundHtml = @"
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<title>MagicCoinSnapper</title>
+<script>
+var pathSegmentsToKeep = $pathSegmentsToKeep;
+var l = window.location;
+l.replace(
+  l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+  l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+  l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+  (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+  l.hash
+);
+</script>
+</head>
+<body></body>
+</html>
+"@
+
+$restoreSnippet = "<script>(function(l){if(l.search[0]==='?'){var q=l.search.slice(1).split('&').map(function(s){return s.replace(/~and~/g,'&')});var p=q.find(function(s){return s[0]==='/'});if(p){var b=l.pathname.split('/').slice(0," + ($pathSegmentsToKeep + 1) + ").join('/');var r=q.filter(function(s){return s[0]!=='/'});window.history.replaceState(null,null,b+p+(r.length?'?'+r.join('&'):'')+l.hash)}}})(window.location);</script>"
+
+$blazorScriptTag = '<script src="_framework/blazor.webassembly.js"></script>'
+if ($indexHtml -notmatch [System.Text.RegularExpressions.Regex]::Escape($blazorScriptTag)) {
+    throw "Der blazor.webassembly.js-Script-Tag wurde in der veröffentlichten index.html nicht gefunden."
+}
+$indexHtml = $indexHtml.Replace($blazorScriptTag, "$restoreSnippet$blazorScriptTag")
+
+[System.IO.File]::WriteAllText($indexPath, $indexHtml, $utf8WithoutBom)
+[System.IO.File]::WriteAllText($notFoundPath, $notFoundHtml, $utf8WithoutBom)
 New-Item -Path $noJekyllPath -ItemType File -Force | Out-Null
 
 Write-Output "GitHub-Pages-Releasebuild vorbereitet: $publishPath"
