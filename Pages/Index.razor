@@ -1,4 +1,35 @@
 @page "/"
 <PageTitle>Startseite</PageTitle>
 
-<MudText Typo="Typo.h4">Startseite</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mcs-page">
+    <MudStack Spacing="4">
+        <MudPaper Elevation="0" Class="mcs-hero-panel">
+            <MudStack Spacing="3">
+                <MudText Class="mcs-kicker">Buehnenmodus</MudText>
+                <h1 class="mcs-page-title">Muenze fotografieren. Bild vorbereiten. Scan starten.</h1>
+                <MudText Class="mcs-lead">
+                    MagicCoinSnapper ist fuer den schnellen Smartphone-Einsatz gedacht: Kamera oeffnen, Hand mit Muenze aufnehmen oder ein Bild laden.
+                </MudText>
+                <MudButton Href="/camera" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoCamera" Class="mcs-wide-button">
+                    Scan starten
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        <MudPaper Elevation="0" Class="mcs-panel">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.subtitle1">Aktueller Stand</MudText>
+                <div class="mcs-status-row">
+                    <div class="mcs-status-card">
+                        <MudText Typo="Typo.subtitle2">Kamera und Upload</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Bereit fuer Aufnahme, Vorschau und Speichern.</MudText>
+                    </div>
+                    <div class="mcs-status-card">
+                        <MudText Typo="Typo.subtitle2">Muenzerkennung</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">Die eigentliche Scan-Logik folgt spaeter.</MudText>
+                    </div>
+                </div>
+            </MudStack>
+        </MudPaper>
+    </MudStack>
+</MudContainer>

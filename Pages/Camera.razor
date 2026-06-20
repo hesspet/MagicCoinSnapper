@@ -1,32 +1,86 @@
 @page "/camera"
 <PageTitle>Scan</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Scan</MudText>
-
 <MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="camera-page">
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnCameraStart" Disabled="@(_livePreview || _isBusy)">Kamera starten</MudButton>
-    <MudButton Variant="Variant.Outlined" OnClick="OnCameraStop" Disabled="@(!_livePreview)">Kamera stoppen</MudButton>
+    <MudStack Spacing="1" Class="camera-header">
+        <h1>Scan</h1>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Muenze in die Hand legen, Bild aufnehmen oder aus der Galerie laden.
+        </MudText>
+    </MudStack>
 
-    <video id="@_videoId" class="camera-video @(_livePreview ? "" : "hidden")" playsinline autoplay muted></video>
+    <MudPaper Elevation="0" Class="camera-stage">
+        <video id="@_videoId" class="camera-video @(_livePreview ? "" : "hidden")" playsinline autoplay muted></video>
 
-    @if (_livePreview)
-    {
-        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="OnCapture">Aufnehmen</MudButton>
-    }
+        @if (_hasImage && !_livePreview)
+        {
+            <MudImage Src="@_previewUrl" Fluid="true" ObjectFit="ObjectFit.Contain" Alt="Aufgenommenes Bild" Class="preview-image" />
+        }
 
-    <MudFileUpload IBrowserFile Files="_uploadedFile" FilesChanged="@((IBrowserFile? f) => OnFileSelected(f))" Accept="image/png,image/jpeg" MaxFileSize="10485760">
-        <CustomContent Context="uploader">
-            <MudButton Variant="Variant.Outlined" OnClick="@(() => uploader.OpenFilePickerAsync())">Bild laden</MudButton>
-        </CustomContent>
-    </MudFileUpload>
+        @if (!_livePreview && !_hasImage)
+        {
+            <div class="camera-empty">
+                <MudIcon Icon="@Icons.Material.Filled.PhotoCamera" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.subtitle1">Bereit fuer ein Bild</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                    Starte die Kamera oder lade ein vorhandenes Foto.
+                </MudText>
+            </div>
+        }
 
-    @if (_hasImage)
-    {
-        <MudImage Src="@_previewUrl" Fluid="true" ObjectFit="ObjectFit.Contain" Alt="Aufgenommenes Bild" Class="preview-image" />
-        <MudButton Variant="Variant.Filled" OnClick="OnSave">Speichern</MudButton>
-        <MudButton Variant="Variant.Outlined" OnClick="OnClear">Löschen</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnScan">Scannen</MudButton>
-    }
+        @if (_livePreview)
+        {
+            <div class="camera-overlay">
+                Hand ruhig halten. Muenze sichtbar platzieren.
+            </div>
+        }
+    </MudPaper>
+
+    <MudPaper Elevation="0" Class="camera-actions">
+        @if (_livePreview)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnCapture" Disabled="@_isBusy" FullWidth="true" StartIcon="@Icons.Material.Filled.Camera">
+                Foto aufnehmen
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="OnCameraStop" Disabled="@(!_livePreview)" FullWidth="true">
+                Kamera stoppen
+            </MudButton>
+        }
+        else if (_hasImage)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnScan" FullWidth="true" StartIcon="@Icons.Material.Filled.AutoAwesome">
+                Bild scannen
+            </MudButton>
+            <MudStack Row="true" Spacing="2" Class="camera-action-row">
+                <MudButton Variant="Variant.Outlined" OnClick="OnSave" FullWidth="true" StartIcon="@Icons.Material.Filled.Download">
+                    Speichern
+                </MudButton>
+                <MudFileUpload T="IBrowserFile" Files="_uploadedFile" FilesChanged="@((IBrowserFile? f) => OnFileSelected(f))" Accept="image/png,image/jpeg" MaxFileSize="10485760" Class="camera-upload">
+                    <CustomContent Context="uploader">
+                        <MudButton Variant="Variant.Outlined" OnClick="@(() => uploader.OpenFilePickerAsync())" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoLibrary">
+                            Ersetzen
+                        </MudButton>
+                    </CustomContent>
+                </MudFileUpload>
+            </MudStack>
+            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="OnClear" FullWidth="true" StartIcon="@Icons.Material.Filled.Delete">
+                Bild loeschen
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnCameraStart" Disabled="@(_livePreview || _isBusy)" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoCamera">
+                Kamera starten
+            </MudButton>
+            <MudFileUpload T="IBrowserFile" Files="_uploadedFile" FilesChanged="@((IBrowserFile? f) => OnFileSelected(f))" Accept="image/png,image/jpeg" MaxFileSize="10485760">
+                <CustomContent Context="uploader">
+                    <MudButton Variant="Variant.Outlined" OnClick="@(() => uploader.OpenFilePickerAsync())" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoLibrary">
+                        Bild aus Galerie laden
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
+        }
+    </MudPaper>
 </MudContainer>
 
 @code {

@@ -1,35 +1,78 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_theme" IsDarkMode="true" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ToggleDrawer" />
-        MagicCoinSnapper
+    <MudAppBar Elevation="0" Class="mcs-appbar">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="ToggleDrawer" aria-label="Navigation oeffnen" />
+        <MudText Typo="Typo.subtitle1" Class="mcs-app-title">MagicCoinSnapper</MudText>
+        <MudSpacer />
+        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Color="Color.Primary" Size="Size.Small" />
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Sm" Elevation="1">
+    <MudDrawer @bind-Open="_drawerOpen" Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Sm" Elevation="0" Class="mcs-drawer">
         <MudDrawerHeader>
-            <MudText Typo="Typo.h6">MagicCoinSnapper</MudText>
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6">MagicCoinSnapper</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Buehnenmodus</MudText>
+            </MudStack>
         </MudDrawerHeader>
-        <MudNavMenu>
-            <MudNavLink Href="/" Match="NavLinkMatch.All">Startseite</MudNavLink>
-            <MudNavLink Href="/camera" Match="NavLinkMatch.Prefix">Scan</MudNavLink>
-            <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix">Einstellungen</MudNavLink>
-            <MudNavLink Href="/ueber" Match="NavLinkMatch.Prefix">Über</MudNavLink>
+        <MudNavMenu Class="mcs-nav-menu">
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Startseite</MudNavLink>
+            <MudNavLink Href="/camera" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PhotoCamera">Scan</MudNavLink>
+            <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Einstellungen</MudNavLink>
+            <MudNavLink Href="/ueber" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Info">Ueber</MudNavLink>
         </MudNavMenu>
     </MudDrawer>
 
-    <MudMainContent>
-        @Body
+    <MudMainContent Class="mcs-main-content">
+        <div class="mcs-page-host">
+            @Body
+        </div>
     </MudMainContent>
+
+    <div class="mcs-bottom-action" role="navigation" aria-label="Schnellaktion">
+        <MudButton Href="/camera" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoCamera" Class="mcs-bottom-button">
+            Scan starten
+        </MudButton>
+    </div>
 </MudLayout>
 
 @code {
     private bool _drawerOpen = false;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#d8a83f",
+            Secondary = "#b8b2a7",
+            Tertiary = "#7c4dff",
+            Background = "#07070a",
+            Surface = "#171720",
+            AppbarBackground = "#101016",
+            AppbarText = "#f5f1e8",
+            DrawerBackground = "#171720",
+            DrawerText = "#f5f1e8",
+            DrawerIcon = "#d8a83f",
+            TextPrimary = "#f5f1e8",
+            TextSecondary = "#b8b2a7",
+            ActionDefault = "#d8a83f",
+            LinesDefault = "#343442",
+            Divider = "#343442",
+            Error = "#ff5a5f",
+            Success = "#49d17d",
+            Warning = "#f2c35b",
+            Info = "#64b5f6"
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "14px"
+        }
+    };
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 }

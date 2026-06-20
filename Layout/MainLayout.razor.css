@@ -1,1 +1,60 @@
-/* MudBlazor übernimmt das Layout; keine projektspezifischen Layout-Regeln. */
+.mcs-appbar {
+    border-bottom: 1px solid var(--mcs-border);
+    padding-top: env(safe-area-inset-top);
+}
+
+.mcs-app-title {
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.mcs-drawer {
+    border-right: 1px solid var(--mcs-border);
+}
+
+.mcs-nav-menu {
+    padding: var(--mcs-space-2);
+}
+
+.mcs-main-content {
+    min-height: 100dvh;
+    background:
+        radial-gradient(circle at 50% -10%, rgba(216, 168, 63, 0.14), transparent 32rem),
+        var(--mcs-bg);
+}
+
+.mcs-page-host {
+    padding: calc(var(--mcs-space-4) + env(safe-area-inset-top)) var(--mcs-space-4) calc(96px + env(safe-area-inset-bottom));
+}
+
+.mcs-bottom-action {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    min-height: calc(72px + env(safe-area-inset-bottom));
+    padding: var(--mcs-space-2) var(--mcs-space-4) calc(var(--mcs-space-2) + env(safe-area-inset-bottom));
+    background: rgba(16, 16, 22, 0.96);
+    border-top: 1px solid var(--mcs-border);
+    backdrop-filter: blur(14px);
+}
+
+::deep .mcs-bottom-button {
+    min-height: 56px;
+    border-radius: var(--mcs-radius-pill);
+    color: #120f08;
+    font-weight: 800;
+}
+
+@media (min-width: 600px) {
+    .mcs-page-host {
+        padding: var(--mcs-space-6);
+    }
+
+    .mcs-bottom-action {
+        display: none;
+    }
+}

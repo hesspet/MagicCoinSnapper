@@ -1,5 +1,23 @@
 @page "/settings"
 <PageTitle>Einstellungen</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Einstellungen</MudText>
-<MudText Typo="Typo.body1">Allgemeine App-Einstellungen und PWA-Optionen.</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mcs-page">
+    <MudStack Spacing="4">
+        <MudStack Spacing="1">
+            <h1 class="mcs-page-title">Einstellungen</h1>
+            <MudText Class="mcs-lead">Optionen fuer Kamera, PWA und spaetere Scan-Ergebnisse.</MudText>
+        </MudStack>
+
+        <MudPaper Elevation="0" Class="mcs-panel">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.subtitle1">Buehnenbetrieb</MudText>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Die Einstellungen sind vorbereitet. Konkrete Optionen werden mit der Scan-Pipeline ergaenzt.
+                </MudAlert>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Geplant sind blendarmes Verhalten, Kamera-Vorgaben und Ergebnisdarstellung fuer den Einsatz am Smartphone.
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    </MudStack>
+</MudContainer>

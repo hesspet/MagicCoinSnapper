@@ -1,122 +1,242 @@
-# Design – MagicCoinSnapper
+# DESIGN.md - MagicCoinSnapper
 
-Dieses Dokument hält die verbindlichen Designentscheidungen für das Projekt fest.
-Es ist die Referenz für alle UI-/Komponenten-/Style-Entscheidungen und wird in `AGENTS.md` referenziert.
+Dieses Dokument ist das verbindliche Designsystem fuer MagicCoinSnapper. Es ersetzt alle Marketing- oder Fremdmarken-Referenzen. Jede UI-Aenderung muss sich daran orientieren.
 
-## Subjekt & Zielgruppe
+## Produktbild
 
-- **Subjekt:** Werkzeug für Bühnenzauberer / Conjurer zur Münzerkennung auf dem Smartphone.
-- **Zielgruppe:** Zauberer, die während einer Bühnenshow eine Hand mit Münze fotografieren und das Bild weiterverarbeiten wollen.
-- **Single Job der App:** Ein Bild aufnehmen oder laden, bereitstellen, (später) scannen.
+- MagicCoinSnapper ist eine Smartphone-first PWA fuer Buehnenzauberer.
+- Der Hauptkontext ist eine dunkle Buehne, wenig Licht, eine Hand, eine Muenze und ein schneller Foto- oder Upload-Flow.
+- Die App muss mit einer Hand bedienbar sein, auch unter Zeitdruck vor oder waehrend einer Show.
+- UI-Sprache ist Deutsch.
+- Die Optik ist praezise, geheimnisvoll und buehnentauglich: dunkle Flaechen, warme Goldakzente, klare Kontraste, keine verspielte Marketing-Aesthetik.
 
-## Tech-Stack (designrelevant)
+## UI-Technik
 
-| Bereich      | Entscheidung                                            |
-|--------------|---------------------------------------------------------|
-| Framework    | Blazor WebAssembly (.NET 10 LTS)                        |
-| UI-Bibliothek| MudBlazor 9.5.0 (einzige UI-Lib, kein Bootstrap)        |
-| Theme        | Default MudBlazor-Theme (Anpassung später möglich)      |
-| Schrift      | System-Sans-Serif (Roboto auf Android nativ); bewusst kein Google-Fonts-CDN (offline-tauglich) |
-| Layout       | MudLayout: MudAppBar + MudDrawer Responsive + MudNavMenu |
-| UI-Sprache   | Deutsch                                                 |
-| PWA          | Standalone, offline-tauglich, Service Worker cacht MudBlazor-Assets automatisch |
+- MudBlazor 9.5.0 ist die einzige UI-Bibliothek.
+- Keine Bootstrap-Klassen, keine fremden Component Libraries, keine CDN-Fonts.
+- Layout, Navigation, Buttons, Inputs, Dialoge, Drawer, Snackbar, Tabs und Cards werden mit MudBlazor umgesetzt.
+- Eigene CSS-Klassen sind nur fuer Layout-Templates, Design-Tokens, Kamera-/Bildflaechen und notwendige Feinanpassungen erlaubt.
+- Icons kommen aus MudBlazor/Material Icons, sofern kein zwingender Produktgrund fuer eigene SVGs besteht.
 
-## Layout-System
+## Design Tokens
 
-### Shell (`Layout/MainLayout.razor`)
+### Farben
 
-```
-MudThemeProvider / MudPopoverProvider / MudDialogProvider / MudSnackbarProvider
-MudLayout
-├── MudAppBar (Elevation=1)
-│   ├── MudIconButton (Icons.Material.Filled.Menu, Edge=Start, OnClick=ToggleDrawer)
-│   └── Titel "MagicCoinSnapper"
-├── MudDrawer (Variant=Responsive, Breakpoint=Sm, @bind-Open)
-│   ├── MudDrawerHeader → MudText Typo.h6 "MagicCoinSnapper"
-│   └── MudNavMenu
-│       ├── Startseite  → /
-│       ├── Scan        → /camera
-│       ├── Einstellungen → /settings
-│       └── Über        → /ueber
-└── MudMainContent → @Body
-```
+| Token | Wert | Verwendung |
+|---|---:|---|
+| `--mcs-bg` | `#07070a` | App-Hintergrund, Buehnenraum |
+| `--mcs-bg-soft` | `#101016` | Seitenflaechen, AppBar, Bottom-Bar |
+| `--mcs-surface` | `#171720` | Cards, Panels, Drawer |
+| `--mcs-surface-raised` | `#20202b` | aktive Flaechen, Dialoge |
+| `--mcs-border` | `#343442` | Hairlines, Trenner, Input-Border |
+| `--mcs-text` | `#f5f1e8` | Primaerer Text |
+| `--mcs-text-muted` | `#b8b2a7` | Sekundaerer Text, Hilfetext |
+| `--mcs-text-disabled` | `#77727f` | Disabled, Platzhalter |
+| `--mcs-gold` | `#d8a83f` | Primaeraktion, Scan-Fokus, aktive Navigation |
+| `--mcs-gold-strong` | `#f2c35b` | Hover/Highlight, wichtige Statuspunkte |
+| `--mcs-gold-soft` | `#3a2b12` | dezente Goldflaechen |
+| `--mcs-red` | `#ff5a5f` | Fehler, kritische Hinweise |
+| `--mcs-green` | `#49d17d` | Erfolg, bereit, gespeichert |
+| `--mcs-blue` | `#64b5f6` | Info, technische Hinweise |
+| `--mcs-camera-overlay` | `rgba(0, 0, 0, 0.58)` | Kamera-Abdunklung |
 
-### Responsive Verhalten
-- **Desktop (≥ Sm):** Drawer permanent eingeblendet, schiebt Content.
-- **Mobile (< Sm):** Drawer als Overlay, Hamburger-Toggle in AppBar, schließt bei Navigation.
-- **Default-Zustand:** `_drawerOpen = false` (mobile-first; Desktop-Nutzer öffnen einmal).
+Regeln:
 
-## Farbsystem
+- Primaerfarbe ist Gold, nicht Blau.
+- Flaechen bleiben dunkel; helle Vollseiten sind nicht erlaubt.
+- Statusfarben werden sparsam eingesetzt und duerfen Gold nicht ersetzen.
+- Textkontrast muss auf echten Smartphone-Displays bei geringer Helligkeit lesbar bleiben.
 
-Aktuell: **Default MudBlazor-Palette** (Primary = Indigo, Background = Weiß).
-Keine projektspezifischen Farben definiert.
+### Spacing
 
-> Offen für später: dunkle/theatralische Palette für Bühnenmagie (in `PROJEKTUEBERSICHT.md` als TODO geführt).
-> Bei Anpassung: `MudTheme` mit `PaletteLight`/`PaletteDark` in `MainLayout.razor` definieren und hier dokumentieren.
+Basis ist ein 4px-Raster.
 
-## Typografie
+| Token | Wert | Verwendung |
+|---|---:|---|
+| `--mcs-space-1` | `4px` | feine Abstaende |
+| `--mcs-space-2` | `8px` | Icon/Text, kompakte Gruppen |
+| `--mcs-space-3` | `12px` | kleine Innenabstaende |
+| `--mcs-space-4` | `16px` | Standard-Padding mobil |
+| `--mcs-space-5` | `20px` | Formulargruppen |
+| `--mcs-space-6` | `24px` | Cards, Seitenabschnitte |
+| `--mcs-space-8` | `32px` | groessere Bloecke |
+| `--mcs-space-10` | `40px` | Desktop-Abschnitte |
 
-| Rolle      | MudBlazor-Typo | Verwendung                          |
-|------------|----------------|-------------------------------------|
-| Seiten-Titel | `Typo.h4`    | Überschrift jeder Seite             |
-| App-Titel  | `Typo.h6`      | Drawer-Header                        |
-| Body       | `Typo.body1`   | Fließtext, Platzhalter              |
+Regeln:
 
-Keine zusätzlichen Webfonts eingebunden; MudBlazor nutzt System-Sans-Serif (auf Android Roboto).
+- Mobile Seiten haben horizontal `16px` Padding.
+- Primaeraktionen liegen in Daumennaehe am unteren Rand.
+- Vertikale Abstaende sind kompakt; die App ist ein Werkzeug, keine Landingpage.
 
-## Komponenten-Konventionen
+### Radius
 
-- **Buttons:** `MudButton` mit `Variant.Filled` (primäre Aktion) bzw. `Variant.Outlined` (sekundär). `Color.Primary` für die Hauptaktion einer Seite.
-- **Text:** `MudText` mit `Typo`-Parameter, `GutterBottom="true"` für Abstand darunter.
-- **Bildvorschau:** `MudImage` mit `Fluid="true"`, `ObjectFit="ObjectFit.Contain"`, `max-height: 60vh` (scoped CSS).
-- **Datei-Upload:** `MudFileUpload<IBrowserFile>` mit `CustomContent`-Activator (MudBlazor 9.5), `Accept`/`MaxFileSize` immer explizit.
-- **Feedback:** `ISnackbar` mit `Severity` (Info/Error), deutsche Meldungen, kein Apologizing.
-- **Container:** `MudContainer MaxWidth="MaxWidth.ExtraSmall"` für mobile-first Seiteninhalte.
+| Token | Wert | Verwendung |
+|---|---:|---|
+| `--mcs-radius-xs` | `6px` | Badges, kleine Markierungen |
+| `--mcs-radius-sm` | `10px` | Inputs, kleine Buttons |
+| `--mcs-radius-md` | `14px` | Cards, Panels, Menus |
+| `--mcs-radius-lg` | `20px` | Kamera-Preview, grosse Cards |
+| `--mcs-radius-pill` | `999px` | Chips, Bottom-Actions |
 
-## Seiten-Spezifika
+Regeln:
 
-### `/` (Index)
-- Nur `MudText Typo.h4 "Startseite"`, kein Body. Bewusst leere Leinwand für künftigen Inhalt.
+- Keine eckigen Standard-Container.
+- Keine uebertrieben weichen Marketing-Karten.
+- Kamera- und Bildflaechen bekommen den groessten Radius.
 
-### `/camera` (Camera) — Hauptseite
-- Mobile-first, `MudContainer MaxWidth=ExtraSmall`, Flex-Column mit `gap: 1rem`.
-- **Kamera:** `<video id="cam" playsinline autoplay muted>` (iOS-kompatibel), `.hidden`-Klasse toggelt Sichtbarkeit.
-- **Capture:** PNG via `canvas.toDataURL('image/png')`.
-- **Upload:** `image/png,image/jpeg`, max 10 MB, Original-Content-Type wird bewahrt (keine Konvertierung).
-- **Vorschau:** Daten-URL (`data:{contentType};base64,...`) — kein Object-URL, kein Revocation-Aufwand.
-- **Speichern:** Browser-Download via `DotNetStreamReference` + JS-Blob (`<a download>`), `revokeObjectURL` nach Klick.
-- **Scannen:** Platzhalter, `Severity.Info`-Snackbar "Scan-Funktion folgt später."
-- **Dispose:** `IAsyncDisposable` — Kamera-Stream wird beim Verlassen freigegeben (sonst bleibt LED an).
+### Typografie
 
-### `/settings`, `/ueber`
-- Platzhalter (`MudText`), `/ueber` mit Lorem-Ipsum-Beispielinhalt.
+System-Font-Stack: `Inter, Segoe UI, Roboto, Arial, sans-serif`. Keine extern geladenen Fonts.
 
-### `/not-found` (NotFound)
-- Über `Router.NotFoundPage` (.NET 10), benötigt `@page "/not-found"` (RouteAttribute-Pflicht).
+| Token | Groesse | Gewicht | Zeilenhoehe | Verwendung |
+|---|---:|---:|---:|---|
+| `--mcs-type-display` | `28px` | `700` | `1.15` | Start-/Flow-Titel mobil |
+| `--mcs-type-title` | `22px` | `700` | `1.2` | Seitentitel |
+| `--mcs-type-subtitle` | `18px` | `600` | `1.3` | Card-Titel, Gruppen |
+| `--mcs-type-body` | `16px` | `400` | `1.5` | Standardtext |
+| `--mcs-type-body-strong` | `16px` | `600` | `1.45` | wichtige Werte, Labels |
+| `--mcs-type-small` | `14px` | `400` | `1.45` | Hilfetext, Meta |
+| `--mcs-type-caption` | `12px` | `600` | `1.3` | Badges, Status |
+| `--mcs-type-button` | `16px` | `700` | `1` | Hauptbuttons |
 
-## State-Management
+Regeln:
 
-- **`ImageStateService`** (Scoped): hält aktuelles Bild als `byte[]` + `ContentType` + `Source` ("camera"|"upload").
-- Ein Bild zur Zeit; `SetImage()` überschreibt; `OnChanged`-Event für künftige Scan-Seite.
-- In Blazor WASM = Tab-Singleton (ein Circuit pro Tab), persists across navigations.
-- Keine IndexedDB, keine Query-Strings für Bild-Payloads.
+- Titel sind kurz und handlungsorientiert.
+- Keine dekorativen Display-Fonts.
+- Zahlen, Status und Scan-Ergebnisse muessen sofort erfassbar sein.
 
-## IIS Express & Secure Context
+### Touch, Hoehen und Bewegung
 
-- `getUserMedia` erfordert HTTPS/`localhost`. IIS Express auf Port **44332** (Bereich 44300–44399, Selbstsignat-Zertifikat) erfüllt das.
-- `wwwroot/web.config`: MIME-Typen (`.dll`, `.wasm`, `.woff2`) + SPA-Fallback (Sub-Routen → `index.html`).
+- Mindest-Touchziel: `48px` Hoehe und Breite.
+- Primaerbutton mobil: `56px` Hoehe.
+- Bottom-Action-Bar: `72px` Mindesthoehe plus Safe-Area.
+- AppBar mobil: `56px`, Desktop: `64px`.
+- Animationen: `120ms` bis `180ms`, easing `ease-out`.
+- Keine langen Parallax-, Marketing- oder Scroll-Animationen.
 
-## Don'ts
+## MudBlazor-Einschraenkungen
 
-- **Kein Bootstrap** (entfernt, MudBlazor übernimmt alles).
-- **Kein Google-Fonts-CDN** (offline-tauglich bleiben).
-- **Keine Kommentare im Code** (außer explizit angefordert, siehe `AGENTS.md`).
-- **Keine `streamRef.DisposeAsync()`** — `DotNetStreamReference` hat keine; JS-Seite disposet, C# disposet den `MemoryStream`.
-- **Kein `ActivatorContent`** bei `MudFileUpload` 9.5 → `CustomContent` + `OpenFilePickerAsync()`.
-- **Kein `<NotFound>`-Renderfragment** im Router (.NET 10) → `NotFoundPage`-Parameter.
+- `MudTheme` bildet die Tokens ab; keine verstreuten Hex-Werte in Komponenten.
+- `MudButton` nutzt `Variant.Filled` fuer Primaeraktionen und `Variant.Outlined` oder `Variant.Text` fuer Nebenaktionen.
+- `Color.Primary` ist Gold. `Color.Secondary` bleibt dunkel/dezent.
+- `MudCard` ist fuer strukturierte Inhalte erlaubt, aber nicht fuer jede kleine Textgruppe.
+- `MudPaper` darf fuer App-Shell-, Kamera- und Einstellungs-Panels genutzt werden.
+- `MudDialog` nur fuer echte Unterbrechungen: Berechtigungen, Loeschen, kritische Fehler.
+- `MudSnackbar` nur fuer kurze Rueckmeldungen: gespeichert, Fehler, offline, Upload bereit.
+- `MudDrawer` auf Desktop erlaubt; mobil keine dauerhafte Seitenleiste.
+- `MudGrid` ist fuer einfache Raster erlaubt; fuer Smartphone-Flows bevorzugt einspaltige Flex-/Stack-Layouts.
+- `MudTable` ist mobil zu vermeiden; Ergebnisse als Cards oder Listen darstellen.
+- Keine Inline-Styles ausser dynamischen, komponentennahen Werten wie Bildgroessen aus Laufzeitdaten.
 
-## Änderungsprotokoll
+## Layoutvorlagen
 
-| Datum       | Änderung                                                      |
-|-------------|---------------------------------------------------------------|
-| 19.06.2026  | Erstellt: MudBlazor-/.NET-10-Umstellung + Kamera-Feature      |
+### `app-shell`
+
+Zweck: globale PWA-Huelle.
+
+- Hintergrund `--mcs-bg` ueber die gesamte Viewport-Hoehe.
+- `MudAppBar` dunkel, flach, mit Logo/Titel links und optionaler Statusaktion rechts.
+- Desktop darf `MudDrawer` fuer Navigation nutzen.
+- Mobile Navigation wird als Bottom-Navigation oder Bottom-Actions umgesetzt, nicht als permanenter Drawer.
+- Content beruecksichtigt `safe-area-inset-top` und `safe-area-inset-bottom`.
+
+### `mobile-bottom-action`
+
+Zweck: feste Hauptaktion fuer Daumenbedienung.
+
+- Am unteren Rand fixiert oder sticky.
+- Hintergrund `--mcs-bg-soft` mit oberer Hairline `--mcs-border`.
+- Primaeraktion als goldener `MudButton` mit `56px` Hoehe und Pill-Radius.
+- Nebenaktionen links/rechts nur, wenn sie im Flow wirklich gebraucht werden.
+- Muss `env(safe-area-inset-bottom)` einrechnen.
+
+### `mobile-page`
+
+Zweck: Standardseite fuer Smartphone.
+
+- Einspaltig, max. Breite `520px`, zentriert auf groesseren Screens.
+- Padding mobil `16px`, Desktop `24px` bis `32px`.
+- Seitenkopf: kurzer Titel, optional ein Satz Kontext.
+- Inhalt in klaren Abschnitten mit `24px` Abstand.
+- Hauptaktion unten, nicht versteckt in der Kopfzeile.
+
+### `camera-flow`
+
+Zweck: Foto aufnehmen, Bild laden, Scan vorbereiten.
+
+- Kamera-/Bildbereich ist die visuelle Mitte der Seite.
+- Preview als dunkles Panel mit Radius `20px`, Hairline und optionaler Gold-Fokusmarke.
+- Overlay-Hinweise kurz: z. B. `Hand ruhig halten`, `Muenze sichtbar platzieren`.
+- Primaeraktion: `Foto aufnehmen` oder `Bild verwenden`.
+- Sekundaeraktionen: `Aus Galerie laden`, `Erneut aufnehmen`, `Abbrechen`.
+- Berechtigungsfehler zeigen konkrete naechste Schritte, keinen generischen Fehlertext.
+
+### `settings`
+
+Zweck: Einstellungen ohne Ablenkung.
+
+- Gruppen als `MudPaper`/`MudCard` auf `--mcs-surface`.
+- Jede Gruppe hat Titel, optional Hilfetext, dann Controls.
+- Toggles und Selects muessen grosse Touchziele behalten.
+- Gefaehrliche Aktionen stehen am Ende und nutzen Rot nur fuer die konkrete Aktion.
+
+### `placeholder`
+
+Zweck: leere, kommende oder nicht verfuegbare Zustaende.
+
+- Dunkle Card mit dezentem Icon, kurzem Titel und einem hilfreichen Satz.
+- Wenn moeglich eine konkrete Aktion anbieten.
+- Keine generischen Illustrationen, keine Maskottchen, keine Marketinggrafiken.
+- Offline-/Berechtigungs-/Kein-Bild-Zustaende muessen eindeutig unterscheidbar sein.
+
+## Komponentenregeln
+
+- Primaerbuttons sind gold, breit und unten erreichbar.
+- Sekundaerbuttons sind dunkel/outlined oder textbasiert.
+- Inputs sind dunkel, klar beschriftet und nicht nur ueber Placeholder erklaert.
+- Cards trennen Funktionen, nicht Dekoration.
+- Badges zeigen Status wie `Bereit`, `Offline`, `Demo`, `Fehler`.
+- Icons unterstuetzen Text, ersetzen ihn aber nicht bei wichtigen Aktionen.
+- Loading States zeigen, was passiert: `Bild wird vorbereitet`, `Scan laeuft`, `Wird gespeichert`.
+
+## Do
+
+- Smartphone zuerst entwerfen und dann fuer Desktop erweitern.
+- Dunkle Buehnenoptik konsequent halten.
+- Gold nur fuer Fokus, Fortschritt und primaere Aktionen verwenden.
+- Kamera- und Bildflaechen gross, ruhig und kontrastreich darstellen.
+- Deutsche, kurze, aktive Beschriftungen verwenden.
+- Offline- und Berechtigungszustaende als normale PWA-Zustaende behandeln.
+- MudBlazor-Komponenten bevorzugen und nur gezielt stylen.
+
+## Don't
+
+- Keine Clay.com-, SaaS-Marketing-, Cream-Canvas- oder 3D-Maskottchen-Aesthetik.
+- Keine Bootstrap-Klassen oder zweite UI-Bibliothek.
+- Keine hellen Vollseiten oder hellgrauen Admin-Oberflaechen.
+- Keine Navigation, die auf Mobile wichtige Aktionen nach oben oder in Menues versteckt.
+- Keine langen Texte in Buttons oder Kamera-Overlays.
+- Keine Tabellen fuer mobile Scan-Ergebnisse.
+- Keine Hover-only Interaktionen; Touch muss vollstaendig funktionieren.
+- Keine neuen Farben, Abstaende oder Radien ohne Token-Erweiterung in diesem Dokument.
+
+## Umsetzungsreihenfolge
+
+1. `MudTheme` mit Farb-, Typografie-, Radius- und Default-Komponentenwerten definieren.
+2. `app-shell` auf dunkle PWA-Huelle, Safe-Areas und mobile Navigation bringen.
+3. `mobile-page` und `mobile-bottom-action` als wiederverwendbare Struktur etablieren.
+4. `camera-flow` fuer Aufnahme, Galerie, Preview und Berechtigungen gestalten.
+5. `settings` und `placeholder` vereinheitlichen.
+6. Bestehende Seiten auf Tokens, MudBlazor-only und deutsche Microcopy pruefen.
+7. Visuelle Sonderfaelle entfernen: Inline-Hex, Bootstrap-Reste, helle Marketing-Flaechen.
+
+## Verifikation
+
+- `DESIGN.md` ist die Quelle fuer UI-Entscheidungen; Abweichungen muessen bewusst begruendet werden.
+- Suche nach Bootstrap-Klassen und fremden UI-Bibliotheken muss ohne neue Treffer bleiben.
+- Suche nach Inline-Hex-Werten in Komponenten muss begruendet oder bereinigt sein.
+- Build, Lint und Tests muessen nach UI-Aenderungen laufen, sofern im Projekt vorhanden.
+- Manuelle Pruefung auf einem Smartphone-Viewport: `360x800`, `390x844`, `430x932`.
+- Touchziele mindestens `48px`; Hauptaktion unten erreichbar.
+- Dark-Mode-Kontrast bei niedriger Displayhelligkeit pruefen.
+- PWA-Zustaende pruefen: offline, fehlende Kamera-Berechtigung, kein Bild, Fehler, Erfolg.

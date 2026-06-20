@@ -1,7 +1,15 @@
 @page "/not-found"
-@* NotFound-Seite (wird vom Router bei unbekannten Routen angezeigt) *@
 <PageTitle>Nicht gefunden</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Seite nicht gefunden</MudText>
-<MudText Typo="Typo.body1">Unter dieser Adresse gibt es nichts.</MudText>
-<MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" Class="mt-4">Zur Startseite</MudButton>
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mcs-page">
+    <MudPaper Elevation="0" Class="mcs-panel">
+        <MudStack Spacing="3" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Primary" Size="Size.Large" />
+            <h1 class="mcs-page-title">Seite nicht gefunden</h1>
+            <MudText Class="mcs-lead" Align="Align.Center">Unter dieser Adresse gibt es keine Funktion.</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" FullWidth="true" Class="mcs-wide-button">
+                Zur Startseite
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+</MudContainer>
