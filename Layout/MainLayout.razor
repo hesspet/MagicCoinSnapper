@@ -22,14 +22,14 @@
             </MudStack>
         </MudDrawerHeader>
         <MudNavMenu Class="mcs-nav-menu">
-            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Startseite</MudNavLink>
-            <MudNavLink Href="/camera" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PhotoCamera">Scan</MudNavLink>
+            <MudNavLink Href="." Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Startseite</MudNavLink>
+            <MudNavLink Href="camera" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PhotoCamera">Scan</MudNavLink>
             @if (Settings.ExpertModeEnabled)
             {
-                <MudNavLink Href="/collection" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Collections">Bildersammlung</MudNavLink>
+                <MudNavLink Href="collection" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Collections">Bildersammlung</MudNavLink>
             }
-            <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Einstellungen</MudNavLink>
-            <MudNavLink Href="/ueber" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Info">Ueber</MudNavLink>
+            <MudNavLink Href="settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">Einstellungen</MudNavLink>
+            <MudNavLink Href="ueber" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Info">Ueber</MudNavLink>
         </MudNavMenu>
     </MudDrawer>
 
@@ -40,7 +40,7 @@
     </MudMainContent>
 
     <div class="mcs-bottom-action" role="navigation" aria-label="Schnellaktion">
-        <MudButton Href="/camera" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoCamera" Class="mcs-bottom-button">
+        <MudButton Href="camera" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoCamera" Class="mcs-bottom-button">
             Scan starten
         </MudButton>
     </div>

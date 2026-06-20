@@ -21,7 +21,7 @@
                     <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
                         Aktiviere den Expertenmodus in den Einstellungen, um Rohbilder fuer Trainingsdaten zu sammeln.
                     </MudText>
-                    <MudButton Href="/settings" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="collection-primary-button">
+                    <MudButton Href="settings" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="collection-primary-button">
                         Einstellungen oeffnen
                     </MudButton>
                 </MudStack>
@@ -51,7 +51,7 @@
                 <MudStack Spacing="3">
                     <MudText Typo="Typo.subtitle2">Bildquelle</MudText>
                     <MudStack Row="true" Spacing="2" Class="collection-action-row">
-                        <MudButton Href="/camera" Variant="Variant.Outlined" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoCamera">
+                        <MudButton Href="camera" Variant="Variant.Outlined" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoCamera">
                             Bild aufnehmen
                         </MudButton>
                         <MudFileUpload T="IBrowserFile" Files="_uploadedFile" FilesChanged="@((IBrowserFile? f) => OnFileSelected(f))" Accept="image/png,image/jpeg" MaxFileSize="10485760" Class="collection-upload">
