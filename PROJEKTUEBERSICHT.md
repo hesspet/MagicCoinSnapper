@@ -9,7 +9,8 @@
 - **Kamera-Workflow** vollständig: Rückkamera (`getUserMedia`), Foto aufnehmen (PNG), Upload (PNG/JPEG, max 10 MB), Vorschau, Speichern (Download), Löschen.
 - **Bildbereitstellung** über `ImageStateService`: hält Originalbild und optional ein freigestelltes Münzbild im Speicher.
 - **Münzerkennung / Scan-Logik** vorbereitet: Browserseitige ONNX-Pipeline mit lokalem Heuristik-Fallback erzeugt ein eng zugeschnittenes PNG mit transparentem Hintergrund.
-- **Bildersammlung** vorbereitet: Expertenmodus mit Rohbildsammlung, IndexedDB-Speicherung und ZIP-Export fuer den separaten Desktop-Trainer.
+- **Bildersammlung** vorbereitet: Expertenmodus mit Rohbildsammlung, IndexedDB-Speicherung und ZIP-Export fuer den separaten Desktop-Trainer. Der Desktop-Trainer ist mittlerweile vollstaendig implementiert (CLI, ML-Pipeline, PySide6-GUI) und kann das Raw-ZIP importieren, annotieren, trainieren und ONNX exportieren; siehe `trainer/README.md`.
+- **Trainer** vollstaendig umgesetzt: Python-3.12-Paket `mcs_trainer` mit 8 CLI-Befehlen, 28 Tests gruen, End-to-End-Smoke verifiziert (siehe `trainer/PROJEKTUEBERSICHT.md` und `TRAINER_PLAN.md`).
 - **Settings** strukturell vorbereitet, funktional noch Platzhalter.
 - Build: `dotnet build` kompiliert fehlerfrei, 0 Fehler, 0 Warnungen.
 

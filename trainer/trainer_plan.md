@@ -61,15 +61,17 @@ output: float32[1,1,512,512], probability mask, 0..1
 threshold: 0.5
 ```
 
-## Wichtig Fuer Die Naechste Session
+## Status
 
-Nicht zuerst die komplette GUI bauen. Besser zuerst einen stabilen CLI-Kern erstellen:
+Alle MVP-Phasen (1-10) sind umgesetzt und verifiziert. End-to-end-Smoke (validate -> split -> train -> evaluate -> export-onnx -> package-model) laeuft durch, 28 Tests sind gruen.
 
-- `pyproject.toml`
-- `src/mcs_trainer/cli/main.py`
-- `src/mcs_trainer/dataset/schemas.py`
-- `src/mcs_trainer/dataset/raw_zip.py`
-- `import-raw` Command
-- `validate` Command
-
-Erst wenn Import und Schema sauber sind, die PySide6-App darauf aufbauen.
+- Phase 1: `trainer/` Python-Projekt mit `pyproject.toml`, Paket `mcs_trainer`, editable installiert.
+- Phase 2: CLI-Grundlage mit Raw-ZIP-Import (`import-raw`).
+- Phase 3: Dataset-Schema per Pydantic v2 und Validierung (`validate`, raw + annotated).
+- Phase 4: PySide6-Bildviewer (`image_viewer.py`).
+- Phase 5: Maskenwerkzeuge Pinsel/Radierer/Ellipse/Undo/Redo (`mask_editor.py`).
+- Phase 6: Metadatenpanel und Dataset-Speicherung (`metadata_panel.py`, `annotated_dataset.py`).
+- Phase 7: Trainingspipeline mit PyTorch (`train`, `evaluate`, U-Net, BCE+Adam, Checkpoints).
+- Phase 8: ONNX-Export und ONNX-Validierung (`export-onnx`, feste Shapes, onnxsim).
+- Phase 9: Modellpaket-Erzeugung (`package-model`, zip mit Metadaten und SHA256SUMS).
+- Phase 10: PWA-Smoke-Test, ONNX nach `wwwroot/models/coin-segmentation.onnx` kopiert (aktuell Smoke-Modell, noch kein Produktionsmodell).

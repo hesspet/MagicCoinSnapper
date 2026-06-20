@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcs-trainer"
+version = "0.1.0"
+description = "MagicCoinSnapper Trainer CLI"
+requires-python = ">=3.12"
+dependencies = [
+    "typer>=0.12",
+    "rich>=13",
+    "pydantic>=2",
+    "Pillow>=10",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+ml = [
+    "torch",
+    "torchvision",
+    "albumentations",
+    "onnx",
+    "onnxruntime",
+    "onnxsim",
+]
+gui = ["PySide6"]
+
+[project.scripts]
+mcs-trainer = "mcs_trainer.cli.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mcs_trainer"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

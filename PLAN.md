@@ -148,3 +148,48 @@
 ### Offen (Folgeschritte)
 - Scan-/Verarbeitungs-Seite, die `ImageStateService.ImageBytes` konsumiert
 - Echte Münzerkennungs-Pipeline
+
+---
+
+## Erweiterung: Trainer-CLI, ML-Pipeline und PySide6-GUI (umgesetzt 20.06.2026)
+
+### Umfang
+
+Der separate Desktop-Trainer unter `trainer/` wurde als Python-3.12-Paket `mcs_trainer` (editable pip-installiert) vollstaendig umgesetzt: CLI-Kern, ML-Trainingspipeline und PySide6-Annotation-GUI.
+
+### CLI-Befehle (8, alle funktionstuechtig)
+
+```
+mcs-trainer import-raw --zip <zip> [--dest trainer/data/raw]
+mcs-trainer validate --dataset <dir> [--mode auto|raw|annotated]
+mcs-trainer split --dataset <dir> [--train 0.8] [--val 0.1] [--test 0.1] [--seed 42]
+mcs-trainer train --dataset <dir> --profile general [--device auto|cuda|cpu] [--epochs 30] [--batch-size 8] [--lr 1e-3] [--seed 42] [--out-dir trainer/runs/coinseg]
+mcs-trainer evaluate --run <run> --dataset <dir> [--device auto]
+mcs-trainer export-onnx --run <run> [--opset 17]
+mcs-trainer package-model --onnx <onnx> --run <run> [--out-dir trainer/model-packages]
+mcs-trainer gui [--dataset <dir>]
+```
+
+### Wesentliche Entscheidungen
+
+- **Pydantic v2** fuer Raw-/Annotated-Schemas (`RAW_SCHEMA_VERSION`, `ANNOTATED_SCHEMA_VERSION`).
+- **Preprocessing spiegelt die PWA exakt**: direkter Stretch-Resize auf 512x512, RGB, /255-Normalisierung, kein Letterboxing; Masken {0,255}->{0,1}.
+- **Lazy Imports** fuer optionale Dependencies (ML, GUI), sodass `mcs-trainer --help` auch ohne torch/PySide6 laeuft.
+- **U-Net** (compact, base=32, sigmoid output), BCEWithLogitsLoss + Adam, best-by-val-dice Checkpoints, auto-inkrementierende Run-Verzeichnisse.
+- **ONNX-Export** mit festen Shapes [1,3,512,512]->[1,1,512,512], Input-Name "input", Output-Name "mask", onnxsim-Vereinfachung.
+- **Modellpaket** als zip mit onnx, model.json, metrics.json, preprocessing.json, README.md, SHA256SUMS.txt.
+- **GUI**: ImageViewer (Zoom/Pan), MaskEditor (Pinsel/Radierer/Ellipse, Undo/Redo), MetadataPanel (notes/tags/excluded), MainWindow mit Toolbar, Tastatur-Navigation und QProcess-basiertem Training.
+
+### Aufgetretene Probleme & Fixes
+
+- `safe_join` in `utils/paths.py` lieferte absolute Pfade, wodurch Bilder in das CWD statt in das Dataset-Verzeichnis geschrieben wurden. Fix: korrektes Joinen gegen das Dataset-Verzeichnis.
+
+### Verifiziert
+
+- 28 Tests via `python -m pytest -q` aus `trainer/` gruen (Import, Raw-/Annotated-Validierung, Splits, CLI-Smoke).
+- End-to-End-Smoke: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], Bereich 0..1) -> package-model.
+- ONNX-Modellvertrag gegen PWA validiert; Modell nach `wwwroot/models/coin-segmentation.onnx` kopiert.
+
+### Offen
+
+- Das aktuell in `wwwroot/models/coin-segmentation.onnx` liegende Modell ist das Smoke-Test-Modell (trainiert auf 12 synthetischen 64x64-Kreis-Samples) und KEIN Produktionsmodell. Es muss mit echten Muenzbildern trainiert und ersetzt werden.

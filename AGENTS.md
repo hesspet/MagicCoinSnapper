@@ -33,4 +33,15 @@
 ## Projektinformationen
 
 * @PROJEKTUEBERSICHT.md
+* @trainer/README.md
+* @trainer/PROJEKTUEBERSICHT.md
+
+## Trainer-Tests
+
+```
+cd trainer
+python -m pip install -e ".[dev,ml,gui]"
+python -m pytest -q
+mcs-trainer --help
+```
 

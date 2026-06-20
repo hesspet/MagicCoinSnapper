@@ -190,22 +190,25 @@ mcs-model-general-1.0.0.zip
 
 ## Umsetzungsphasen
 
-1. `trainer/` Python-Projekt anlegen.
-2. CLI-Grundlage mit Raw-ZIP-Import bauen.
-3. Dataset-Schema und Validierung implementieren.
-4. PySide6-Bildviewer bauen.
-5. Maskenwerkzeuge hinzufuegen.
-6. Metadatenpanel und Dataset-Speicherung ergaenzen.
-7. Trainingspipeline mit PyTorch bauen.
-8. ONNX-Export und ONNX-Validierung ergaenzen.
-9. Modellpaket-Erzeugung bauen.
-10. PWA-Smoke-Test mit `wwwroot/models/coin-segmentation.onnx`.
+1. `trainer/` Python-Projekt anlegen. [erledigt] Paket `mcs_trainer`, `pyproject.toml`, editable installiert.
+2. CLI-Grundlage mit Raw-ZIP-Import bauen. [erledigt] `import-raw` per Typer, `raw_zip.py`.
+3. Dataset-Schema und Validierung implementieren. [erledigt] Pydantic-v2-Schemas, `validate` fuer raw + annotated.
+4. PySide6-Bildviewer bauen. [erledigt] `ImageViewer` mit Zoom/Pan.
+5. Maskenwerkzeuge hinzufuegen. [erledigt] Pinsel/Radierer/Ellipse, Undo/Redo, `MaskEditor`.
+6. Metadatenpanel und Dataset-Speicherung ergaenzen. [erledigt] `MetadataPanel` (notes/tags/excluded), `annotated_dataset.py`.
+7. Trainingspipeline mit PyTorch bauen. [erledigt] U-Net (base=32), `train`/`evaluate`, BCE+Adam, Checkpoints.
+8. ONNX-Export und ONNX-Validierung ergaenzen. [erledigt] `export-onnx`, feste Shapes [1,3,512,512]->[1,1,512,512], onnxsim.
+9. Modellpaket-Erzeugung bauen. [erledigt] `package-model`, zip mit onnx/model.json/metrics.json/preprocessing.json/README/SHA256SUMS.
+10. PWA-Smoke-Test mit `wwwroot/models/coin-segmentation.onnx`. [erledigt] ONNX kopiert; aktuell Smoke-Modell, noch kein Produktionsmodell.
 
-## Naechster Schritt
+## Status
 
-In der naechsten Session mit Phase 1 starten:
+Alle 10 Phasen sind abgeschlossen und verifiziert. Die CLI hat 8 Befehle (`import-raw`, `validate`, `split`, `train`, `evaluate`, `export-onnx`, `package-model`, `gui`). 28 Tests via `python -m pytest -q` aus `trainer/` gruen. End-to-end-Smoke verifiziert: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], 0..1) -> package-model -> ONNX nach `wwwroot/models/coin-segmentation.onnx`.
 
-- `trainer/pyproject.toml` anlegen
-- Paketstruktur unter `trainer/src/mcs_trainer/` erstellen
-- CLI-Entry `mcs-trainer` vorbereiten
-- Raw-ZIP-Import und Schema-Validierung als erste lauffaehige Funktion bauen
+## Naechste Schritte
+
+- Smoke-Test-ONNX durch ein mit echten Muenzbildern trainiertes Produktionsmodell ersetzen.
+- Weitere Trainingsprofile implementieren (`poker-coins`, `silver-dollar`, `stage-light`, `customer-*`).
+- Smartere Splits: gleiche Muenze/Session nicht gleichzeitig in Train und Test.
+- GUI Active-Learning Verbesserungen.
+- Produktionsmodell mit echten Muenzbildern trainieren und in PWA ausliefern.
