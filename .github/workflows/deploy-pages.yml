@@ -42,7 +42,36 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  notify:
+    name: Email-Benachrichtigung senden
+    needs: deploy
+    if: github.event_name == 'push' && needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Email versenden
+        uses: dawidd6/action-send-mail@v4
+        with:
+          server_address: mail.gmx.com
+          server_port: 587
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: MagicCoinSnapper – Neue Version verfügbar
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_USERNAME }}
+          body: |
+            Eine neue Version von MagicCoinSnapper wurde auf GitHub Pages veröffentlicht.
+
+            📦 Repository: ${{ github.repository }}
+            🌐 URL: ${{ needs.deploy.outputs.page_url }}
+
+            🔨 Commit: ${{ github.event.head_commit.message }}
+            👤 Autor: ${{ github.event.head_commit.author.name }}
+
+            🔗 Workflow-Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
