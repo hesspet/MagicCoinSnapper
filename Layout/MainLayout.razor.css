@@ -19,7 +19,7 @@
 .mcs-main-content {
     min-height: 100dvh;
     background:
-        radial-gradient(circle at 50% -10%, rgba(216, 168, 63, 0.14), transparent 32rem),
+        radial-gradient(circle at 50% -10%, var(--mcs-glow-gold), transparent 32rem),
         var(--mcs-bg);
 }
 
@@ -37,7 +37,7 @@
     align-items: center;
     min-height: calc(72px + env(safe-area-inset-bottom));
     padding: var(--mcs-space-2) var(--mcs-space-4) calc(var(--mcs-space-2) + env(safe-area-inset-bottom));
-    background: rgba(16, 16, 22, 0.96);
+    background: var(--mcs-bottom-bar-bg);
     border-top: 1px solid var(--mcs-border);
     backdrop-filter: blur(14px);
 }
@@ -45,7 +45,7 @@
 ::deep .mcs-bottom-button {
     min-height: 56px;
     border-radius: var(--mcs-radius-pill);
-    color: #120f08;
+    color: var(--mcs-primary-contrast);
     font-weight: 800;
 }
 

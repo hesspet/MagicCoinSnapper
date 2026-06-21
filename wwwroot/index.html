@@ -7,6 +7,22 @@
     <meta name="theme-color" content="#101016" />
     <title>MagicCoinSnapper</title>
     <base href="/" />
+    <script>
+        (function () {
+            var design = 'dark';
+            try {
+                design = localStorage.getItem('mcs.design') || design;
+            } catch {
+                design = 'dark';
+            }
+            var theme = design === 'light' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = theme;
+            var themeColor = document.querySelector('meta[name="theme-color"]');
+            if (themeColor) {
+                themeColor.setAttribute('content', theme === 'light' ? '#fff9ef' : '#101016');
+            }
+        }());
+    </script>
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/app.css" />
     <link rel="icon" type="image/png" href="favicon.png" />

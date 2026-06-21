@@ -11,9 +11,10 @@
 
         <MudPaper Elevation="0" Class="mcs-panel">
             <MudStack Spacing="3">
-                <MudText Typo="Typo.subtitle1">Buehnenbetrieb</MudText>
+                <MudText Typo="Typo.subtitle1">Darstellung</MudText>
+                <MudSwitch T="bool" Value="_isDarkDesign" ValueChanged="OnDesignChanged" Color="Color.Primary" Label="@($"Design: {(_isDarkDesign ? "Dunkel" : "Hell")}")" />
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    Geplant sind blendarmes Verhalten, Kamera-Vorgaben und Ergebnisdarstellung fuer den Einsatz am Smartphone.
+                    Waehle zwischen dunklem Standarddesign und heller Oberflaeche. Kamera- und Bildflaechen bleiben kontrastreich.
                 </MudText>
             </MudStack>
         </MudPaper>
@@ -85,6 +86,7 @@
     [Inject] AppSettingsService AppSettings { get; set; } = default!;
 
     private bool _expertMode;
+    private bool _isDarkDesign = true;
     private bool _modelListLoaded;
     private string _selectedModelId = string.Empty;
     private ModelDescriptor[] _models = [];
@@ -95,6 +97,7 @@
     {
         await AppSettings.LoadAsync();
         _expertMode = AppSettings.ExpertModeEnabled;
+        _isDarkDesign = AppSettings.IsDarkDesign;
         _modelRegistryModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/model-registry.js");
         _models = (await _modelRegistryModule.InvokeAsync<ModelDescriptor[]>("getAvailableModels"))
             .Where(model => !string.IsNullOrWhiteSpace(model.Id))
@@ -109,6 +112,12 @@
     {
         _expertMode = enabled;
         await AppSettings.SetExpertModeAsync(enabled);
+    }
+
+    private async Task OnDesignChanged(bool isDarkDesign)
+    {
+        _isDarkDesign = isDarkDesign;
+        await AppSettings.SetIsDarkDesignAsync(isDarkDesign);
     }
 
     private async Task OnSelectedModelChanged(string modelId)

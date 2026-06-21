@@ -1,19 +1,4 @@
 :root {
-    --mcs-bg: #07070a;
-    --mcs-bg-soft: #101016;
-    --mcs-surface: #171720;
-    --mcs-surface-raised: #20202b;
-    --mcs-border: #343442;
-    --mcs-text: #f5f1e8;
-    --mcs-text-muted: #b8b2a7;
-    --mcs-text-disabled: #77727f;
-    --mcs-gold: #d8a83f;
-    --mcs-gold-strong: #f2c35b;
-    --mcs-gold-soft: #3a2b12;
-    --mcs-red: #ff5a5f;
-    --mcs-green: #49d17d;
-    --mcs-blue: #64b5f6;
-    --mcs-camera-overlay: rgba(0, 0, 0, 0.58);
     --mcs-space-1: 4px;
     --mcs-space-2: 8px;
     --mcs-space-3: 12px;
@@ -27,6 +12,65 @@
     --mcs-radius-md: 14px;
     --mcs-radius-lg: 20px;
     --mcs-radius-pill: 999px;
+}
+
+:root,
+html[data-theme="dark"] {
+    --mcs-bg: #07070a;
+    --mcs-bg-soft: #101016;
+    --mcs-surface: #171720;
+    --mcs-surface-raised: #20202b;
+    --mcs-border: #343442;
+    --mcs-text: #f5f1e8;
+    --mcs-text-muted: #b8b2a7;
+    --mcs-text-disabled: #77727f;
+    --mcs-gold: #d8a83f;
+    --mcs-gold-strong: #f2c35b;
+    --mcs-gold-soft: #3a2b12;
+    --mcs-primary-contrast: #120f08;
+    --mcs-red: #ff5a5f;
+    --mcs-error-bg: #5b1518;
+    --mcs-error-contrast: #ffffff;
+    --mcs-green: #49d17d;
+    --mcs-blue: #64b5f6;
+    --mcs-media-bg: #000000;
+    --mcs-media-bg-soft: #050507;
+    --mcs-media-text: #f5f1e8;
+    --mcs-bottom-bar-bg: rgba(16, 16, 22, 0.96);
+    --mcs-camera-overlay: rgba(0, 0, 0, 0.58);
+    --mcs-glow-gold: rgba(216, 168, 63, 0.16);
+    --mcs-glow-gold-strong: rgba(216, 168, 63, 0.22);
+    --mcs-gold-border: rgba(216, 168, 63, 0.34);
+    --mcs-gold-border-strong: rgba(216, 168, 63, 0.42);
+}
+
+html[data-theme="light"] {
+    --mcs-bg: #f6f1e8;
+    --mcs-bg-soft: #efe5d5;
+    --mcs-surface: #fff9ef;
+    --mcs-surface-raised: #ffffff;
+    --mcs-border: #d7cbb8;
+    --mcs-text: #211b12;
+    --mcs-text-muted: #635b4e;
+    --mcs-text-disabled: #9b907f;
+    --mcs-gold: #9a6d13;
+    --mcs-gold-strong: #6f4c08;
+    --mcs-gold-soft: #f3dfb4;
+    --mcs-primary-contrast: #fff9ef;
+    --mcs-red: #b3261e;
+    --mcs-error-bg: #f8d7d4;
+    --mcs-error-contrast: #3d0b08;
+    --mcs-green: #247a45;
+    --mcs-blue: #1e6aa8;
+    --mcs-media-bg: #000000;
+    --mcs-media-bg-soft: #050507;
+    --mcs-media-text: #f5f1e8;
+    --mcs-bottom-bar-bg: rgba(255, 249, 239, 0.96);
+    --mcs-camera-overlay: rgba(0, 0, 0, 0.58);
+    --mcs-glow-gold: rgba(154, 109, 19, 0.12);
+    --mcs-glow-gold-strong: rgba(154, 109, 19, 0.18);
+    --mcs-gold-border: rgba(154, 109, 19, 0.26);
+    --mcs-gold-border-strong: rgba(154, 109, 19, 0.38);
 }
 
 html,
@@ -63,8 +107,8 @@ h1:focus {
     z-index: 2000;
     display: none;
     padding: var(--mcs-space-4) var(--mcs-space-8) var(--mcs-space-4) var(--mcs-space-4);
-    color: #ffffff;
-    background: #5b1518;
+    color: var(--mcs-error-contrast);
+    background: var(--mcs-error-bg);
     border: 1px solid var(--mcs-red);
     border-radius: var(--mcs-radius-md);
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
@@ -72,7 +116,7 @@ h1:focus {
 
 #blazor-error-ui .reload {
     margin-left: var(--mcs-space-2);
-    color: #ffffff;
+    color: var(--mcs-error-contrast);
     font-weight: 700;
 }
 
@@ -85,8 +129,8 @@ h1:focus {
 
 .blazor-error-boundary {
     padding: var(--mcs-space-4);
-    color: #ffffff;
-    background: #5b1518;
+    color: var(--mcs-error-contrast);
+    background: var(--mcs-error-bg);
     border: 1px solid var(--mcs-red);
     border-radius: var(--mcs-radius-md);
 }
@@ -162,9 +206,9 @@ code {
 .mcs-hero-panel {
     padding: var(--mcs-space-6);
     background:
-        radial-gradient(circle at 78% 10%, rgba(216, 168, 63, 0.22), transparent 9rem),
+        radial-gradient(circle at 78% 10%, var(--mcs-glow-gold-strong), transparent 9rem),
         var(--mcs-surface);
-    border: 1px solid rgba(216, 168, 63, 0.34);
+    border: 1px solid var(--mcs-gold-border);
     border-radius: var(--mcs-radius-lg);
 }
 
@@ -211,7 +255,7 @@ code {
 .mcs-wide-button {
     min-height: 56px;
     border-radius: var(--mcs-radius-pill) !important;
-    color: #120f08 !important;
+    color: var(--mcs-primary-contrast) !important;
     font-weight: 800 !important;
 }
 

@@ -16,6 +16,8 @@ public sealed class AppSettingsService : IAsyncDisposable
 
     public bool ExpertModeEnabled { get; private set; }
 
+    public bool IsDarkDesign { get; private set; } = true;
+
     public string? SelectedModelId { get; private set; }
 
     public event Action? OnChanged;
@@ -24,6 +26,7 @@ public sealed class AppSettingsService : IAsyncDisposable
     {
         var module = await GetModuleAsync(cancellationToken);
         ExpertModeEnabled = await module.InvokeAsync<bool>("getExpertMode", cancellationToken);
+        IsDarkDesign = await module.InvokeAsync<bool>("getIsDarkDesign", cancellationToken);
         SelectedModelId = await module.InvokeAsync<string?>("getSelectedModelId", cancellationToken);
         OnChanged?.Invoke();
     }
@@ -33,6 +36,14 @@ public sealed class AppSettingsService : IAsyncDisposable
         var module = await GetModuleAsync(cancellationToken);
         ExpertModeEnabled = enabled;
         await module.InvokeVoidAsync("setExpertMode", cancellationToken, enabled);
+        OnChanged?.Invoke();
+    }
+
+    public async ValueTask SetIsDarkDesignAsync(bool isDarkDesign, CancellationToken cancellationToken = default)
+    {
+        var module = await GetModuleAsync(cancellationToken);
+        IsDarkDesign = isDarkDesign;
+        await module.InvokeVoidAsync("setIsDarkDesign", cancellationToken, isDarkDesign);
         OnChanged?.Invoke();
     }
 

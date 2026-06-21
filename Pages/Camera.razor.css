@@ -22,8 +22,8 @@
     min-height: min(62vh, 520px);
     overflow: hidden;
     background:
-        radial-gradient(circle at 50% 18%, rgba(216, 168, 63, 0.16), transparent 13rem),
-        #000000;
+        radial-gradient(circle at 50% 18%, var(--mcs-glow-gold), transparent 13rem),
+        var(--mcs-media-bg);
     border: 1px solid var(--mcs-border);
     border-radius: var(--mcs-radius-lg);
 }
@@ -33,7 +33,7 @@
     inset: var(--mcs-space-3);
     pointer-events: none;
     content: "";
-    border: 1px solid rgba(216, 168, 63, 0.42);
+    border: 1px solid var(--mcs-gold-border-strong);
     border-radius: calc(var(--mcs-radius-lg) - var(--mcs-space-2));
 }
 
@@ -42,7 +42,7 @@
     width: 100%;
     height: 100%;
     min-height: min(62vh, 520px);
-    background: #000000;
+    background: var(--mcs-media-bg);
     object-fit: cover;
 }
 
@@ -57,8 +57,8 @@
 .coin-result-image {
     padding: var(--mcs-space-4);
     background:
-        radial-gradient(circle at 50% 50%, rgba(216, 168, 63, 0.12), transparent 12rem),
-        #050507;
+        radial-gradient(circle at 50% 50%, var(--mcs-glow-gold), transparent 12rem),
+        var(--mcs-media-bg-soft);
     object-fit: contain;
 }
 
@@ -79,12 +79,12 @@
     left: var(--mcs-space-4);
     z-index: 1;
     padding: var(--mcs-space-3) var(--mcs-space-4);
-    color: var(--mcs-text);
+    color: var(--mcs-media-text);
     font-size: 0.875rem;
     font-weight: 700;
     text-align: center;
     background: var(--mcs-camera-overlay);
-    border: 1px solid rgba(216, 168, 63, 0.36);
+    border: 1px solid var(--mcs-gold-border);
     border-radius: var(--mcs-radius-pill);
     backdrop-filter: blur(8px);
 }
@@ -116,7 +116,7 @@
 
 ::deep .camera-actions .mud-button-filled-primary {
     min-height: 56px;
-    color: #120f08;
+    color: var(--mcs-primary-contrast);
 }
 
 @media (min-width: 600px) {

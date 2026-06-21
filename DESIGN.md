@@ -8,7 +8,7 @@ Dieses Dokument ist das verbindliche Designsystem fuer MagicCoinSnapper. Es erse
 - Der Hauptkontext ist eine dunkle Buehne, wenig Licht, eine Hand, eine Muenze und ein schneller Foto- oder Upload-Flow.
 - Die App muss mit einer Hand bedienbar sein, auch unter Zeitdruck vor oder waehrend einer Show.
 - UI-Sprache ist Deutsch.
-- Die Optik ist praezise, geheimnisvoll und buehnentauglich: dunkle Flaechen, warme Goldakzente, klare Kontraste, keine verspielte Marketing-Aesthetik.
+- Die Optik ist praezise, geheimnisvoll und buehnentauglich: klare Flaechen, warme Goldakzente, starke Kontraste, keine Marketing- oder Admin-Aesthetik.
 
 ## UI-Technik
 
@@ -22,28 +22,40 @@ Dieses Dokument ist das verbindliche Designsystem fuer MagicCoinSnapper. Es erse
 
 ### Farben
 
-| Token | Wert | Verwendung |
-|---|---:|---|
-| `--mcs-bg` | `#07070a` | App-Hintergrund, Buehnenraum |
-| `--mcs-bg-soft` | `#101016` | Seitenflaechen, AppBar, Bottom-Bar |
-| `--mcs-surface` | `#171720` | Cards, Panels, Drawer |
-| `--mcs-surface-raised` | `#20202b` | aktive Flaechen, Dialoge |
-| `--mcs-border` | `#343442` | Hairlines, Trenner, Input-Border |
-| `--mcs-text` | `#f5f1e8` | Primaerer Text |
-| `--mcs-text-muted` | `#b8b2a7` | Sekundaerer Text, Hilfetext |
-| `--mcs-text-disabled` | `#77727f` | Disabled, Platzhalter |
-| `--mcs-gold` | `#d8a83f` | Primaeraktion, Scan-Fokus, aktive Navigation |
-| `--mcs-gold-strong` | `#f2c35b` | Hover/Highlight, wichtige Statuspunkte |
-| `--mcs-gold-soft` | `#3a2b12` | dezente Goldflaechen |
-| `--mcs-red` | `#ff5a5f` | Fehler, kritische Hinweise |
-| `--mcs-green` | `#49d17d` | Erfolg, bereit, gespeichert |
-| `--mcs-blue` | `#64b5f6` | Info, technische Hinweise |
-| `--mcs-camera-overlay` | `rgba(0, 0, 0, 0.58)` | Kamera-Abdunklung |
+| Token | Dunkel | Hell | Verwendung |
+|---|---:|---:|---|
+| `--mcs-bg` | `#07070a` | `#f6f1e8` | App-Hintergrund |
+| `--mcs-bg-soft` | `#101016` | `#efe5d5` | Seitenflaechen, AppBar, Bottom-Bar |
+| `--mcs-surface` | `#171720` | `#fff9ef` | Cards, Panels, Drawer |
+| `--mcs-surface-raised` | `#20202b` | `#ffffff` | aktive Flaechen, Dialoge |
+| `--mcs-border` | `#343442` | `#d7cbb8` | Hairlines, Trenner, Input-Border |
+| `--mcs-text` | `#f5f1e8` | `#211b12` | Primaerer Text |
+| `--mcs-text-muted` | `#b8b2a7` | `#635b4e` | Sekundaerer Text, Hilfetext |
+| `--mcs-text-disabled` | `#77727f` | `#9b907f` | Disabled, Platzhalter |
+| `--mcs-gold` | `#d8a83f` | `#9a6d13` | Primaeraktion, Scan-Fokus, aktive Navigation |
+| `--mcs-gold-strong` | `#f2c35b` | `#6f4c08` | Hover/Highlight, wichtige Statuspunkte |
+| `--mcs-gold-soft` | `#3a2b12` | `#f3dfb4` | dezente Goldflaechen |
+| `--mcs-primary-contrast` | `#120f08` | `#fff9ef` | Text auf Primaeraktionen |
+| `--mcs-red` | `#ff5a5f` | `#b3261e` | Fehler, kritische Hinweise |
+| `--mcs-error-bg` | `#5b1518` | `#f8d7d4` | Fehlerflaechen |
+| `--mcs-error-contrast` | `#ffffff` | `#3d0b08` | Text auf Fehlerflaechen |
+| `--mcs-green` | `#49d17d` | `#247a45` | Erfolg, bereit, gespeichert |
+| `--mcs-blue` | `#64b5f6` | `#1e6aa8` | Info, technische Hinweise |
+| `--mcs-media-bg` | `#000000` | `#000000` | Kamera-/Bildflaechen |
+| `--mcs-media-bg-soft` | `#050507` | `#050507` | vorbereitete Bildflaechen |
+| `--mcs-media-text` | `#f5f1e8` | `#f5f1e8` | Text auf dunklen Medienflaechen |
+| `--mcs-bottom-bar-bg` | `rgba(16, 16, 22, 0.96)` | `rgba(255, 249, 239, 0.96)` | mobile Bottom-Bar |
+| `--mcs-camera-overlay` | `rgba(0, 0, 0, 0.58)` | `rgba(0, 0, 0, 0.58)` | Kamera-Abdunklung |
+| `--mcs-glow-gold` | `rgba(216, 168, 63, 0.16)` | `rgba(154, 109, 19, 0.12)` | dezente Fokusverlaeufe |
+| `--mcs-glow-gold-strong` | `rgba(216, 168, 63, 0.22)` | `rgba(154, 109, 19, 0.18)` | staerkere Fokusverlaeufe |
+| `--mcs-gold-border` | `rgba(216, 168, 63, 0.34)` | `rgba(154, 109, 19, 0.26)` | Gold-Hairlines |
+| `--mcs-gold-border-strong` | `rgba(216, 168, 63, 0.42)` | `rgba(154, 109, 19, 0.38)` | starke Gold-Hairlines |
 
 Regeln:
 
 - Primaerfarbe ist Gold, nicht Blau.
-- Flaechen bleiben dunkel; helle Vollseiten sind nicht erlaubt.
+- Default ist Dunkel. Helle Vollseiten sind erlaubt, wenn sie denselben Werkzeugcharakter behalten und nicht nach Marketing- oder Admin-Oberflaeche wirken.
+- Kamera- und Medienflaechen duerfen auch im hellen Design dunkel bleiben.
 - Statusfarben werden sparsam eingesetzt und duerfen Gold nicht ersetzen.
 - Textkontrast muss auf echten Smartphone-Displays bei geringer Helligkeit lesbar bleiben.
 
@@ -135,7 +147,7 @@ Regeln:
 Zweck: globale PWA-Huelle.
 
 - Hintergrund `--mcs-bg` ueber die gesamte Viewport-Hoehe.
-- `MudAppBar` dunkel, flach, mit Logo/Titel links und optionaler Statusaktion rechts.
+- `MudAppBar` flach, mit Logo/Titel links und optionaler Statusaktion rechts.
 - Desktop darf `MudDrawer` fuer Navigation nutzen.
 - Mobile Navigation wird als Bottom-Navigation oder Bottom-Actions umgesetzt, nicht als permanenter Drawer.
 - Content beruecksichtigt `safe-area-inset-top` und `safe-area-inset-bottom`.
@@ -184,7 +196,7 @@ Zweck: Einstellungen ohne Ablenkung.
 
 Zweck: leere, kommende oder nicht verfuegbare Zustaende.
 
-- Dunkle Card mit dezentem Icon, kurzem Titel und einem hilfreichen Satz.
+- Card mit dezentem Icon, kurzem Titel und einem hilfreichen Satz.
 - Wenn moeglich eine konkrete Aktion anbieten.
 - Keine generischen Illustrationen, keine Maskottchen, keine Marketinggrafiken.
 - Offline-/Berechtigungs-/Kein-Bild-Zustaende muessen eindeutig unterscheidbar sein.
@@ -192,8 +204,8 @@ Zweck: leere, kommende oder nicht verfuegbare Zustaende.
 ## Komponentenregeln
 
 - Primaerbuttons sind gold, breit und unten erreichbar.
-- Sekundaerbuttons sind dunkel/outlined oder textbasiert.
-- Inputs sind dunkel, klar beschriftet und nicht nur ueber Placeholder erklaert.
+- Sekundaerbuttons sind outlined oder textbasiert.
+- Inputs sind klar beschriftet und nicht nur ueber Placeholder erklaert.
 - Cards trennen Funktionen, nicht Dekoration.
 - Badges zeigen Status wie `Bereit`, `Offline`, `Demo`, `Fehler`.
 - Icons unterstuetzen Text, ersetzen ihn aber nicht bei wichtigen Aktionen.
@@ -202,7 +214,7 @@ Zweck: leere, kommende oder nicht verfuegbare Zustaende.
 ## Do
 
 - Smartphone zuerst entwerfen und dann fuer Desktop erweitern.
-- Dunkle Buehnenoptik konsequent halten.
+- Dunkles Design als Default konsequent halten; helles Design bleibt ruhig, warm und werkzeughaft.
 - Gold nur fuer Fokus, Fortschritt und primaere Aktionen verwenden.
 - Kamera- und Bildflaechen gross, ruhig und kontrastreich darstellen.
 - Deutsche, kurze, aktive Beschriftungen verwenden.
@@ -213,7 +225,7 @@ Zweck: leere, kommende oder nicht verfuegbare Zustaende.
 
 - Keine Clay.com-, SaaS-Marketing-, Cream-Canvas- oder 3D-Maskottchen-Aesthetik.
 - Keine Bootstrap-Klassen oder zweite UI-Bibliothek.
-- Keine hellen Vollseiten oder hellgrauen Admin-Oberflaechen.
+- Keine hellgrauen Admin-Oberflaechen und keine beliebige SaaS-Marketing-Aesthetik.
 - Keine Navigation, die auf Mobile wichtige Aktionen nach oben oder in Menues versteckt.
 - Keine langen Texte in Buttons oder Kamera-Overlays.
 - Keine Tabellen fuer mobile Scan-Ergebnisse.

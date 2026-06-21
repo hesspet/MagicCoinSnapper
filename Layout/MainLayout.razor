@@ -1,7 +1,7 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 
-<MudThemeProvider Theme="_theme" IsDarkMode="true" />
+<MudThemeProvider Theme="_theme" IsDarkMode="Settings.IsDarkDesign" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -18,7 +18,7 @@
         <MudDrawerHeader>
             <MudStack Spacing="0">
                 <MudText Typo="Typo.h6">MagicCoinSnapper</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Buehnenmodus</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Smartphone-Scan</MudText>
             </MudStack>
         </MudDrawerHeader>
         <MudNavMenu Class="mcs-nav-menu">
@@ -56,6 +56,7 @@
         PaletteDark = new PaletteDark
         {
             Primary = "#d8a83f",
+            PrimaryContrastText = "#120f08",
             Secondary = "#b8b2a7",
             Tertiary = "#7c4dff",
             Background = "#07070a",
@@ -74,6 +75,29 @@
             Success = "#49d17d",
             Warning = "#f2c35b",
             Info = "#64b5f6"
+        },
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#9a6d13",
+            PrimaryContrastText = "#fff9ef",
+            Secondary = "#635b4e",
+            Tertiary = "#6b4fe8",
+            Background = "#f6f1e8",
+            Surface = "#fff9ef",
+            AppbarBackground = "#efe5d5",
+            AppbarText = "#211b12",
+            DrawerBackground = "#fff9ef",
+            DrawerText = "#211b12",
+            DrawerIcon = "#9a6d13",
+            TextPrimary = "#211b12",
+            TextSecondary = "#635b4e",
+            ActionDefault = "#9a6d13",
+            LinesDefault = "#d7cbb8",
+            Divider = "#d7cbb8",
+            Error = "#b3261e",
+            Success = "#247a45",
+            Warning = "#9a6d13",
+            Info = "#1e6aa8"
         },
         LayoutProperties = new LayoutProperties
         {
