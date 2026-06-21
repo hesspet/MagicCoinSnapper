@@ -56,22 +56,49 @@
                 }
             </MudPaper>
 
-            @* Bildquelle: Kamera-Steuerung + Galerie-Upload (obenan, direkt unter Stage) *@
+            @* Aktionspanel: pro Zustand eine benutzerfreundliche Oberfläche *@
             @if (_viewingStoredId is null)
             {
-                <MudPaper Elevation="0" Class="collection-panel">
-                    <MudStack Spacing="3">
-                        @if (_livePreview)
-                        {
+                @if (_livePreview)
+                {
+                    @* Kamera läuft: aufnehmen oder stoppen *@
+                    <MudPaper Elevation="0" Class="collection-panel">
+                        <MudStack Spacing="3">
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnCapture" Disabled="@_isBusy" FullWidth="true" StartIcon="@Icons.Material.Filled.Camera">
                                 Foto aufnehmen
                             </MudButton>
                             <MudButton Variant="Variant.Outlined" OnClick="OnCameraStop" FullWidth="true">
                                 Kamera stoppen
                             </MudButton>
-                        }
-                        else
-                        {
+                        </MudStack>
+                    </MudPaper>
+                }
+                else if (_hasImage)
+                {
+                    @* Bild anzeigen: speichern, verwerfen oder Galerie *@
+                    <MudPaper Elevation="0" Class="collection-panel">
+                        <MudStack Spacing="3">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveImageAsync" Disabled="@_isBusy" FullWidth="true" StartIcon="@Icons.Material.Filled.Save" Class="collection-primary-button">
+                                Speichern
+                            </MudButton>
+                            <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="OnDiscard" Disabled="@_isBusy" FullWidth="true" StartIcon="@Icons.Material.Filled.Delete">
+                                Verwerfen
+                            </MudButton>
+                            <MudFileUpload T="IBrowserFile" Files="_uploadedFile" FilesChanged="@((IBrowserFile? f) => OnFileSelected(f))" Accept="image/png,image/jpeg" MaxFileSize="10485760" Class="collection-upload">
+                                <CustomContent Context="uploader">
+                                    <MudButton Variant="Variant.Outlined" OnClick="@(() => uploader.OpenFilePickerAsync())" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoLibrary" Disabled="@_isBusy">
+                                        Bild aus Galerie laden
+                                    </MudButton>
+                                </CustomContent>
+                            </MudFileUpload>
+                        </MudStack>
+                    </MudPaper>
+                }
+                else
+                {
+                    @* Leerzustand: Kamera starten oder Galerie *@
+                    <MudPaper Elevation="0" Class="collection-panel">
+                        <MudStack Spacing="3">
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnCameraStart" Disabled="@_isBusy" FullWidth="true" StartIcon="@Icons.Material.Filled.PhotoCamera">
                                 Kamera starten
                             </MudButton>
@@ -82,23 +109,9 @@
                                     </MudButton>
                                 </CustomContent>
                             </MudFileUpload>
-                        }
-                    </MudStack>
-                </MudPaper>
-
-                @* Notiz + Speichern + Verwerfen *@
-                <MudPaper Elevation="0" Class="collection-panel">
-                    <MudStack Spacing="3">
-                        <MudTextField @bind-Value="_notes" Label="Notiz optional" Lines="2" Variant="Variant.Outlined" Placeholder="z. B. Silberdollar, Bühnenlicht, Sharpie sichtbar" Disabled="@(!_hasImage)" />
-
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveImageAsync" Disabled="@(!_hasImage || _isBusy)" FullWidth="true" StartIcon="@Icons.Material.Filled.Save" Class="collection-primary-button">
-                            Bild speichern
-                        </MudButton>
-                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="OnClear" Disabled="@(!_hasImage || _livePreview)" FullWidth="true" StartIcon="@Icons.Material.Filled.Delete">
-                            Bild verwerfen
-                        </MudButton>
-                    </MudStack>
-                </MudPaper>
+                        </MudStack>
+                    </MudPaper>
+                }
             }
             else
             {
@@ -162,7 +175,6 @@
     private string? _previewUrl;
     private string? _contentType;
     private string? _source;
-    private string? _notes;
     private string _stageMessage = "Bild bereit";
     private string? _viewingStoredId;
     private IJSObjectReference? _module;
@@ -270,10 +282,15 @@
         _previewUrl = null;
         _contentType = null;
         _source = null;
-        _notes = null;
         _uploadedFile = null;
         _hasImage = false;
         _stageMessage = "Bild bereit";
+    }
+
+    private async Task OnDiscard()
+    {
+        OnClear();
+        await OnCameraStart();
     }
 
     private async Task SaveImageAsync()
@@ -286,13 +303,11 @@
             var metadata = new Models.RawImageSampleMetadata
             {
                 Source = _source ?? "collection",
-                ContentType = _contentType ?? "image/png",
-                Notes = _notes
+                ContentType = _contentType ?? "image/png"
             };
 
             var saved = await RawImages.SaveAsync(metadata, _previewUrl);
             Snackbar.Add(saved is null ? "Bild konnte nicht gespeichert werden." : "Bild gespeichert.", saved is null ? Severity.Warning : Severity.Success);
-            _notes = null;
             OnClear();
             await RawImages.RefreshAsync();
         }
@@ -304,6 +319,8 @@
         {
             _isBusy = false;
         }
+
+        await OnCameraStart();
     }
 
     private async Task ExportAsync()
@@ -356,7 +373,6 @@
             _source = sample.Source;
             _hasImage = true;
             _viewingStoredId = sample.Id;
-            _notes = sample.Notes;
             _uploadedFile = null;
             _stageMessage = FormatStoredBadge(sample);
         }
@@ -391,7 +407,6 @@
         _previewUrl = null;
         _contentType = null;
         _source = null;
-        _notes = null;
         _uploadedFile = null;
         _hasImage = false;
         _stageMessage = "Bild bereit";
@@ -400,15 +415,12 @@
     private static string FormatStoredBadge(Models.RawImageSample sample)
     {
         var date = sample.CreatedAt.LocalDateTime.ToString("dd.MM. HH:mm");
-        return string.IsNullOrWhiteSpace(sample.Notes)
-            ? $"Gespeichert: {date}"
-            : $"Gespeichert: {date} · {sample.Notes}";
+        return $"Gespeichert: {date}";
     }
 
     private static string FormatSample(Models.RawImageSample sample)
     {
-        var date = sample.CreatedAt.LocalDateTime.ToString("dd.MM. HH:mm");
-        return string.IsNullOrWhiteSpace(sample.Notes) ? date : $"{date} · {sample.Notes}";
+        return sample.CreatedAt.LocalDateTime.ToString("dd.MM. HH:mm");
     }
 
     private void ShowCameraError(JSException ex)
