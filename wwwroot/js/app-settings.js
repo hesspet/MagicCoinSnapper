@@ -1,6 +1,7 @@
 const EXPERT_MODE_KEY = 'mcs.expertMode';
 const DESIGN_KEY = 'mcs.design';
 const SELECTED_MODEL_ID_KEY = 'mcs.selectedModelId';
+const SCAN_DEBUG_MODE_KEY = 'mcs.scanDebugMode';
 const DARK_DESIGN = 'dark';
 const LIGHT_DESIGN = 'light';
 
@@ -49,6 +50,14 @@ export function getExpertMode() {
 
 export function setExpertMode(enabled) {
     writeStorage(EXPERT_MODE_KEY, enabled ? 'true' : 'false');
+}
+
+export function getScanDebugMode() {
+    return readStorage(SCAN_DEBUG_MODE_KEY) === 'true';
+}
+
+export function setScanDebugMode(enabled) {
+    writeStorage(SCAN_DEBUG_MODE_KEY, enabled ? 'true' : 'false');
 }
 
 export function getIsDarkDesign() {

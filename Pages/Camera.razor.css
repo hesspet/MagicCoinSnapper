@@ -99,6 +99,21 @@
     border-radius: var(--mcs-radius-md);
 }
 
+.camera-debug-panel {
+    padding: var(--mcs-space-4);
+    background: var(--mcs-surface);
+    border: 1px solid var(--mcs-border);
+    border-radius: var(--mcs-radius-md);
+}
+
+.camera-debug-mask {
+    max-height: 360px;
+    overflow: hidden;
+    background: var(--mcs-media-bg-soft);
+    border: 1px solid var(--mcs-border);
+    border-radius: var(--mcs-radius-md);
+}
+
 .camera-action-row {
     width: 100%;
 }

@@ -37,8 +37,8 @@ export function capture() {
     return canvas.toDataURL('image/png');
 }
 
-export async function extractCoin(dataUrl) {
-    return await extractCoinFromDataUrl(dataUrl);
+export async function extractCoin(dataUrl, debug = false) {
+    return await extractCoinFromDataUrl(dataUrl, { debug });
 }
 
 export async function getActiveModelName() {

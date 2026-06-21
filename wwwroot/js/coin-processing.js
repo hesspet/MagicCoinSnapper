@@ -3,7 +3,8 @@ import { getSelectedModelDescriptor } from './model-registry.js';
 let onnxSessionPromise = null;
 let onnxSessionModelId = null;
 
-export async function extractCoinFromDataUrl(dataUrl) {
+export async function extractCoinFromDataUrl(dataUrl, options = {}) {
+    const debugEnabled = !!options?.debug;
     const image = await loadImage(dataUrl);
     const display = fitToMax(image.width, image.height, 1400);
     const imageCanvas = document.createElement('canvas');
@@ -13,6 +14,7 @@ export async function extractCoinFromDataUrl(dataUrl) {
 
     const proposal = await createProposal(imageCanvas);
     const cutout = createCutout(imageCanvas, proposal.maskCanvas, proposal.metadata);
+    const debug = debugEnabled ? createDebugInfo(proposal, imageCanvas) : null;
 
     return {
         dataUrl: cutout.dataUrl,
@@ -21,30 +23,55 @@ export async function extractCoinFromDataUrl(dataUrl) {
         width: cutout.width,
         height: cutout.height,
         modelDisplayName: proposal.modelDisplayName ?? null,
+        debug,
         message: proposal.usedOnnx
             ? `Münze mit ${proposal.modelDisplayName ?? 'ONNX'} freigestellt.`
-            : 'Münze per Heuristik freigestellt. ONNX-Modell fehlt noch.'
+            : 'Münze per Heuristik freigestellt.'
     };
 }
 
 async function createProposal(imageCanvas) {
     const onnx = await tryCreateOnnxMask(imageCanvas);
-    if (onnx) return onnx;
+    if (onnx?.maskCanvas) return onnx;
 
     const heuristic = createHeuristicMask(imageCanvas);
     return {
         usedOnnx: false,
         confidence: heuristic.confidence,
         maskCanvas: heuristic.maskCanvas,
-        metadata: heuristic.metadata
+        metadata: heuristic.metadata,
+        modelId: onnx?.modelId ?? null,
+        modelDisplayName: onnx?.modelDisplayName ?? null,
+        modelPath: onnx?.modelPath ?? null,
+        modelUrl: onnx?.modelUrl ?? null,
+        threshold: onnx?.threshold ?? null,
+        onnxError: onnx?.onnxError ?? null,
+        fallbackReason: onnx?.fallbackReason ?? 'Kein ONNX-Modell verfügbar.'
     };
 }
 
 async function tryCreateOnnxMask(imageCanvas) {
     const activeModel = await getOnnxSession();
-    if (!activeModel) return null;
+    const descriptor = activeModel?.descriptor ?? null;
+    const threshold = Number.isFinite(descriptor?.output?.threshold) ? descriptor.output.threshold : 0.5;
+    const baseDebug = {
+        modelId: descriptor?.id ?? null,
+        modelDisplayName: descriptor?.displayName ?? null,
+        modelPath: descriptor?.path ?? null,
+        modelUrl: descriptor?.url ?? null,
+        threshold
+    };
 
-    const { session, descriptor } = activeModel;
+    if (!activeModel?.session || !descriptor) {
+        return {
+            usedOnnx: false,
+            ...baseDebug,
+            onnxError: activeModel?.onnxError ?? null,
+            fallbackReason: activeModel?.fallbackReason ?? 'ONNX-Modell nicht verfügbar.'
+        };
+    }
+
+    const { session } = activeModel;
 
     try {
         const size = 512;
@@ -65,13 +92,17 @@ async function tryCreateOnnxMask(imageCanvas) {
         const inputName = session.inputNames[0];
         const output = await session.run({ [inputName]: new window.__mcsOrt.Tensor('float32', tensorData, [1, 3, size, size]) });
         const outputTensor = output[session.outputNames[0]];
-        const threshold = Number.isFinite(descriptor.output?.threshold) ? descriptor.output.threshold : 0.5;
         const maskCanvas = tensorToMaskCanvas(outputTensor, imageCanvas.width, imageCanvas.height, threshold);
         const metadata = analyzeMask(maskCanvas);
 
-        return { usedOnnx: true, confidence: 0.9, maskCanvas, metadata, modelDisplayName: descriptor.displayName };
-    } catch {
-        return null;
+        return { usedOnnx: true, confidence: 0.9, maskCanvas, metadata, ...baseDebug, onnxError: null, fallbackReason: null };
+    } catch (error) {
+        return {
+            usedOnnx: false,
+            ...baseDebug,
+            onnxError: formatError(error),
+            fallbackReason: 'ONNX-Inferenz fehlgeschlagen, Heuristik verwendet.'
+        };
     }
 }
 
@@ -79,36 +110,52 @@ async function getOnnxSession() {
     const descriptor = await getSelectedModelDescriptor();
     if (!descriptor) {
         resetOnnxSession();
-        return null;
+        return { session: null, descriptor: null, onnxError: null, fallbackReason: 'Kein ONNX-Modell ausgewählt oder gefunden.' };
     }
 
     if (onnxSessionPromise && onnxSessionModelId === descriptor.id) {
-        const session = await onnxSessionPromise;
-        return session ? { session, descriptor } : null;
+        const result = await onnxSessionPromise;
+        return result.session
+            ? { session: result.session, descriptor, onnxError: null, fallbackReason: null }
+            : { session: null, descriptor, onnxError: result.onnxError, fallbackReason: result.fallbackReason };
     }
 
     resetOnnxSession();
     onnxSessionModelId = descriptor.id;
     onnxSessionPromise = (async () => {
-        const modelUrl = descriptor.url;
-        const response = await fetch(modelUrl, { method: 'HEAD', cache: 'no-cache' }).catch(() => null);
-        if (!response || !response.ok) return null;
+        try {
+            const modelUrl = descriptor.url;
+            const response = await fetch(modelUrl, { method: 'HEAD', cache: 'no-cache' }).catch(error => ({ __mcsError: error }));
+            if (response?.__mcsError) {
+                return { session: null, onnxError: formatError(response.__mcsError), fallbackReason: 'ONNX-Modell konnte nicht geprüft werden, Heuristik verwendet.' };
+            }
 
-        const ort = await import(new URL('vendor/onnxruntime-web/ort.all.min.mjs', document.baseURI).toString());
-        window.__mcsOrt = ort;
-        ort.env.wasm.numThreads = 1;
-        ort.env.wasm.wasmPaths = new URL('vendor/onnxruntime-web/', document.baseURI).toString();
-        return await ort.InferenceSession.create(modelUrl, { executionProviders: ['wasm'] });
-    })().catch(() => null);
+            if (!response || !response.ok) {
+                const status = response ? `${response.status} ${response.statusText}`.trim() : 'keine Antwort';
+                return { session: null, onnxError: `Modell nicht erreichbar (${status}).`, fallbackReason: 'ONNX-Modell konnte nicht geladen werden, Heuristik verwendet.' };
+            }
 
-    const session = await onnxSessionPromise;
-    return session ? { session, descriptor } : null;
+            const ort = await import(new URL('vendor/onnxruntime-web/ort.all.min.mjs', document.baseURI).toString());
+            window.__mcsOrt = ort;
+            ort.env.wasm.numThreads = 1;
+            ort.env.wasm.wasmPaths = new URL('vendor/onnxruntime-web/', document.baseURI).toString();
+            const session = await ort.InferenceSession.create(modelUrl, { executionProviders: ['wasm'] });
+            return { session, onnxError: null, fallbackReason: null };
+        } catch (error) {
+            return { session: null, onnxError: formatError(error), fallbackReason: 'ONNX-Modell konnte nicht geladen werden, Heuristik verwendet.' };
+        }
+    })();
+
+    const result = await onnxSessionPromise;
+    return result.session
+        ? { session: result.session, descriptor, onnxError: null, fallbackReason: null }
+        : { session: null, descriptor, onnxError: result.onnxError, fallbackReason: result.fallbackReason };
 }
 
 function resetOnnxSession() {
     const previousSessionPromise = onnxSessionPromise;
     if (previousSessionPromise) {
-        previousSessionPromise.then(session => session?.release?.()).catch(() => { });
+        previousSessionPromise.then(result => result?.session?.release?.()).catch(() => { });
     }
 
     onnxSessionPromise = null;
@@ -141,6 +188,68 @@ function tensorToMaskCanvas(tensor, width, height, threshold) {
     maskCanvas.height = height;
     maskCanvas.getContext('2d').drawImage(small, 0, 0, width, height);
     return maskCanvas;
+}
+
+function createDebugInfo(proposal, imageCanvas) {
+    const stats = getMaskStats(proposal.maskCanvas);
+    return {
+        usedOnnx: proposal.usedOnnx,
+        modelId: proposal.modelId ?? null,
+        modelDisplayName: proposal.modelDisplayName ?? null,
+        modelPath: proposal.modelPath ?? null,
+        modelUrl: proposal.modelUrl ?? null,
+        threshold: proposal.threshold ?? null,
+        confidence: proposal.confidence,
+        maskPixelCount: stats.pixelCount,
+        maskCoverage: stats.coverage,
+        onnxError: proposal.onnxError ?? null,
+        fallbackReason: proposal.fallbackReason ?? null,
+        maskPreviewDataUrl: createMaskPreviewDataUrl(imageCanvas, proposal.maskCanvas)
+    };
+}
+
+function getMaskStats(maskCanvas) {
+    const ctx = maskCanvas.getContext('2d', { willReadFrequently: true });
+    const { width, height } = maskCanvas;
+    const data = ctx.getImageData(0, 0, width, height).data;
+    let pixelCount = 0;
+
+    for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 127) {
+            pixelCount++;
+        }
+    }
+
+    return { pixelCount, coverage: pixelCount / (width * height) };
+}
+
+function createMaskPreviewDataUrl(imageCanvas, maskCanvas) {
+    const preview = document.createElement('canvas');
+    preview.width = imageCanvas.width;
+    preview.height = imageCanvas.height;
+    const previewCtx = preview.getContext('2d', { willReadFrequently: true });
+    previewCtx.drawImage(imageCanvas, 0, 0);
+
+    const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+    const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height).data;
+    const overlayCanvas = document.createElement('canvas');
+    overlayCanvas.width = preview.width;
+    overlayCanvas.height = preview.height;
+    const overlayCtx = overlayCanvas.getContext('2d');
+    const overlay = overlayCtx.createImageData(preview.width, preview.height);
+
+    for (let i = 0; i < maskData.length; i += 4) {
+        if (maskData[i + 3] > 127) {
+            overlay.data[i] = 255;
+            overlay.data[i + 1] = 178;
+            overlay.data[i + 2] = 72;
+            overlay.data[i + 3] = 110;
+        }
+    }
+
+    overlayCtx.putImageData(overlay, 0, 0);
+    previewCtx.drawImage(overlayCanvas, 0, 0);
+    return preview.toDataURL('image/png');
 }
 
 function createHeuristicMask(imageCanvas) {
@@ -211,7 +320,7 @@ function analyzeMask(maskCanvas) {
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
-            if (data[(y * width + x) * 4 + 3] > 127) {
+            if (data[(y * width + x) * 4 + 3] > 0) {
                 minX = Math.min(minX, x);
                 minY = Math.min(minY, y);
                 maxX = Math.max(maxX, x);
@@ -225,19 +334,52 @@ function analyzeMask(maskCanvas) {
 
     if (!count) {
         const r = Math.min(width, height) * 0.22;
-        return { cx: width / 2, cy: height / 2, rx: r, ry: r };
+        return { cx: width / 2, cy: height / 2, rx: r, ry: r, isEmpty: true };
     }
 
     return {
         cx: sx / count,
         cy: sy / count,
         rx: Math.max(8, (maxX - minX) / 2),
-        ry: Math.max(8, (maxY - minY) / 2)
+        ry: Math.max(8, (maxY - minY) / 2),
+        minX,
+        minY,
+        maxX,
+        maxY,
+        isEmpty: false
     };
 }
 
 function createCutout(imageCanvas, maskCanvas, metadata) {
-    const meta = metadata || analyzeMask(maskCanvas);
+    const meta = analyzeMask(maskCanvas);
+
+    if (meta.isEmpty) {
+        return createFallbackCutout(imageCanvas, metadata || meta);
+    }
+
+    const pad = Math.max(2, Math.round(Math.max(meta.maxX - meta.minX + 1, meta.maxY - meta.minY + 1) * 0.04));
+    const sx = Math.max(0, meta.minX - pad);
+    const sy = Math.max(0, meta.minY - pad);
+    const ex = Math.min(imageCanvas.width, meta.maxX + 1 + pad);
+    const ey = Math.min(imageCanvas.height, meta.maxY + 1 + pad);
+    const sw = Math.max(1, ex - sx);
+    const sh = Math.max(1, ey - sy);
+    const output = document.createElement('canvas');
+    output.width = sw;
+    output.height = sh;
+    const out = output.getContext('2d');
+    out.clearRect(0, 0, sw, sh);
+    out.drawImage(imageCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+    out.globalCompositeOperation = 'destination-in';
+    out.drawImage(maskCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+    out.globalCompositeOperation = 'source-over';
+
+    return { dataUrl: output.toDataURL('image/png'), width: sw, height: sh };
+}
+
+function createFallbackCutout(imageCanvas, metadata) {
+    const r = Math.min(imageCanvas.width, imageCanvas.height) * 0.22;
+    const meta = metadata || { cx: imageCanvas.width / 2, cy: imageCanvas.height / 2, rx: r, ry: r };
     const pad = Math.max(meta.rx, meta.ry) * 0.08;
     const sx = clamp(meta.cx - meta.rx - pad, 0, imageCanvas.width);
     const sy = clamp(meta.cy - meta.ry - pad, 0, imageCanvas.height);
@@ -285,4 +427,10 @@ function percentile(values, p) {
 
 function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
+}
+
+function formatError(error) {
+    if (!error) return null;
+    if (typeof error === 'string') return error;
+    return error.message || error.name || String(error);
 }

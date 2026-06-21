@@ -25,6 +25,10 @@
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
                     Wähle das ONNX-Modell für neue Scans. Ohne Modell bleibt die Heuristik aktiv.
                 </MudText>
+                <MudSwitch T="bool" Value="_scanDebugMode" ValueChanged="OnScanDebugModeChanged" Color="Color.Primary" Label="Scan-/Modell-Debugmodus" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Zeigt beim Scan Modell-, ONNX- und Maskendaten sowie eine Masken-Vorschau an.
+                </MudText>
 
                 @if (!_modelListLoaded)
                 {
@@ -86,6 +90,7 @@
     [Inject] AppSettingsService AppSettings { get; set; } = default!;
 
     private bool _expertMode;
+    private bool _scanDebugMode;
     private bool _isDarkDesign = true;
     private bool _modelListLoaded;
     private string _selectedModelId = string.Empty;
@@ -97,6 +102,7 @@
     {
         await AppSettings.LoadAsync();
         _expertMode = AppSettings.ExpertModeEnabled;
+        _scanDebugMode = AppSettings.ScanDebugModeEnabled;
         _isDarkDesign = AppSettings.IsDarkDesign;
         _modelRegistryModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/model-registry.js");
         _models = (await _modelRegistryModule.InvokeAsync<ModelDescriptor[]>("getAvailableModels"))
@@ -118,6 +124,12 @@
     {
         _isDarkDesign = isDarkDesign;
         await AppSettings.SetIsDarkDesignAsync(isDarkDesign);
+    }
+
+    private async Task OnScanDebugModeChanged(bool enabled)
+    {
+        _scanDebugMode = enabled;
+        await AppSettings.SetScanDebugModeAsync(enabled);
     }
 
     private async Task OnSelectedModelChanged(string modelId)

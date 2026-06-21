@@ -92,6 +92,54 @@
             </MudFileUpload>
         }
     </MudPaper>
+
+    @if (_scanDebugMode && _scanDebugInfo is not null)
+    {
+        <MudPaper Elevation="0" Class="camera-debug-panel">
+            <MudStack Spacing="3">
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.subtitle1">Scan-Debug</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        ONNX: @(_scanDebugInfo.UsedOnnx ? "verwendet" : "nicht verwendet")
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Modell: @FormatModel(_scanDebugInfo)</MudText>
+                    @if (!string.IsNullOrWhiteSpace(_scanDebugInfo.ModelPath))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Pfad: @_scanDebugInfo.ModelPath</MudText>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_scanDebugInfo.ModelUrl))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">URL: @_scanDebugInfo.ModelUrl</MudText>
+                    }
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Schwelle: @FormatNumber(_scanDebugInfo.Threshold)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Konfidenz: @FormatNumber(_scanDebugInfo.Confidence)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Maske: @_scanDebugInfo.MaskPixelCount Pixel (@FormatPercent(_scanDebugInfo.MaskCoverage))</MudText>
+                </MudStack>
+
+                @if (!string.IsNullOrWhiteSpace(_scanDebugInfo.FallbackReason))
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                        Fallback: @_scanDebugInfo.FallbackReason
+                    </MudAlert>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_scanDebugInfo.OnnxError))
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                        ONNX-Fehler: @_scanDebugInfo.OnnxError
+                    </MudAlert>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(_maskPreviewUrl))
+                {
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body2">Masken-Vorschau</MudText>
+                        <MudImage Src="@_maskPreviewUrl" Fluid="true" ObjectFit="ObjectFit.Contain" Alt="Debug-Vorschau der Segmentierungsmaske" Class="camera-debug-mask" />
+                    </MudStack>
+                }
+            </MudStack>
+        </MudPaper>
+    }
 </MudContainer>
 
 @code {
@@ -104,10 +152,13 @@
     private bool _isBusy;
     private bool _hasImage;
     private bool _hasCoinImage;
+    private bool _scanDebugMode;
     private string? _previewUrl;
     private string? _coinPreviewUrl;
+    private string? _maskPreviewUrl;
     private string? _scanStatus;
     private string? _activeModelStatus;
+    private CoinExtractionDebugInfo? _scanDebugInfo;
     private IBrowserFile? _uploadedFile;
     private IJSObjectReference? _module;
     private const string _videoId = "cam";
@@ -116,6 +167,7 @@
     protected override async Task OnInitializedAsync()
     {
         await Settings.LoadAsync();
+        _scanDebugMode = Settings.ScanDebugModeEnabled;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -197,6 +249,8 @@
         _hasImage = true;
         _hasCoinImage = false;
         _coinPreviewUrl = null;
+        _maskPreviewUrl = null;
+        _scanDebugInfo = null;
         _scanStatus = null;
         ImageState.SetImage(bytes, contentType, source);
     }
@@ -227,6 +281,8 @@
     {
         _previewUrl = null;
         _coinPreviewUrl = null;
+        _maskPreviewUrl = null;
+        _scanDebugInfo = null;
         _scanStatus = null;
         _hasImage = false;
         _hasCoinImage = false;
@@ -242,10 +298,12 @@
         _scanStatus = "Scan läuft";
         try
         {
-            var result = await _module.InvokeAsync<CoinExtractionResult>("extractCoin", _previewUrl);
+            var result = await _module.InvokeAsync<CoinExtractionResult>("extractCoin", _previewUrl, _scanDebugMode);
             var bytes = GetBytesFromDataUrl(result.DataUrl);
             _coinPreviewUrl = result.DataUrl;
             _hasCoinImage = true;
+            _scanDebugInfo = _scanDebugMode ? result.Debug : null;
+            _maskPreviewUrl = _scanDebugInfo?.MaskPreviewDataUrl;
             _scanStatus = result.UsedOnnx && !string.IsNullOrWhiteSpace(result.ModelDisplayName) ? $"Münze erkannt: {result.ModelDisplayName}" : result.UsedOnnx ? "Münze erkannt" : "Heuristik-Ergebnis";
             ImageState.SetExtractedImage(bytes, "image/png");
             Snackbar.Add(result.Message ?? "Münze freigestellt.", result.UsedOnnx ? Severity.Success : Severity.Info);
@@ -265,6 +323,26 @@
     {
         var comma = dataUrl.IndexOf(',');
         return Convert.FromBase64String(dataUrl[(comma + 1)..]);
+    }
+
+    private static string FormatModel(CoinExtractionDebugInfo debug)
+    {
+        if (!string.IsNullOrWhiteSpace(debug.ModelDisplayName) && !string.IsNullOrWhiteSpace(debug.ModelId))
+        {
+            return $"{debug.ModelDisplayName} ({debug.ModelId})";
+        }
+
+        return debug.ModelDisplayName ?? debug.ModelId ?? "kein Modell";
+    }
+
+    private static string FormatNumber(double? value)
+    {
+        return value is double number ? number.ToString("0.###") : "-";
+    }
+
+    private static string FormatPercent(double? value)
+    {
+        return value is double number ? $"{(number * 100).ToString("0.0")} %" : "-";
     }
 
     private void ShowCameraError(JSException ex)
@@ -300,5 +378,19 @@
         }
     }
 
-    private sealed record CoinExtractionResult(string DataUrl, bool UsedOnnx, double Confidence, int Width, int Height, string? Message, string? ModelDisplayName);
+    private sealed record CoinExtractionResult(string DataUrl, bool UsedOnnx, double Confidence, int Width, int Height, string? Message, string? ModelDisplayName, CoinExtractionDebugInfo? Debug);
+
+    private sealed record CoinExtractionDebugInfo(
+        bool UsedOnnx,
+        string? ModelId,
+        string? ModelDisplayName,
+        string? ModelPath,
+        string? ModelUrl,
+        double? Threshold,
+        double? Confidence,
+        int MaskPixelCount,
+        double? MaskCoverage,
+        string? OnnxError,
+        string? FallbackReason,
+        string? MaskPreviewDataUrl);
 }
