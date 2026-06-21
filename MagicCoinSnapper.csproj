@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
-    <BuildVersionBase Condition=" '$(BuildVersionBase)' == '' ">1.4.0</BuildVersionBase>
+    <BuildVersionBase Condition=" '$(BuildVersionBase)' == '' ">1.5.0</BuildVersionBase>
   </PropertyGroup>
 
   <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">

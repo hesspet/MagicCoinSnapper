@@ -114,6 +114,7 @@
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Schwelle: @FormatNumber(_scanDebugInfo.Threshold)</MudText>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Konfidenz: @FormatNumber(_scanDebugInfo.Confidence)</MudText>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Maske: @_scanDebugInfo.MaskPixelCount Pixel (@FormatPercent(_scanDebugInfo.MaskCoverage))</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Finalmaske: @_scanDebugInfo.FinalMaskMode</MudText>
                 </MudStack>
 
                 @if (!string.IsNullOrWhiteSpace(_scanDebugInfo.FallbackReason))
@@ -390,6 +391,7 @@
         double? Confidence,
         int MaskPixelCount,
         double? MaskCoverage,
+        string? FinalMaskMode,
         string? OnnxError,
         string? FallbackReason,
         string? MaskPreviewDataUrl);

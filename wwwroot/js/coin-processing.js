@@ -14,7 +14,7 @@ export async function extractCoinFromDataUrl(dataUrl, options = {}) {
 
     const proposal = await createProposal(imageCanvas);
     const cutout = createCutout(imageCanvas, proposal.maskCanvas, proposal.metadata);
-    const debug = debugEnabled ? createDebugInfo(proposal, imageCanvas) : null;
+    const debug = debugEnabled ? createDebugInfo(proposal, imageCanvas, cutout.geometry) : null;
 
     return {
         dataUrl: cutout.dataUrl,
@@ -190,7 +190,7 @@ function tensorToMaskCanvas(tensor, width, height, threshold) {
     return maskCanvas;
 }
 
-function createDebugInfo(proposal, imageCanvas) {
+function createDebugInfo(proposal, imageCanvas, finalGeometry) {
     const stats = getMaskStats(proposal.maskCanvas);
     return {
         usedOnnx: proposal.usedOnnx,
@@ -202,9 +202,10 @@ function createDebugInfo(proposal, imageCanvas) {
         confidence: proposal.confidence,
         maskPixelCount: stats.pixelCount,
         maskCoverage: stats.coverage,
+        finalMaskMode: finalGeometry?.mode ?? null,
         onnxError: proposal.onnxError ?? null,
         fallbackReason: proposal.fallbackReason ?? null,
-        maskPreviewDataUrl: createMaskPreviewDataUrl(imageCanvas, proposal.maskCanvas)
+        maskPreviewDataUrl: createMaskPreviewDataUrl(imageCanvas, proposal.maskCanvas, finalGeometry)
     };
 }
 
@@ -223,7 +224,7 @@ function getMaskStats(maskCanvas) {
     return { pixelCount, coverage: pixelCount / (width * height) };
 }
 
-function createMaskPreviewDataUrl(imageCanvas, maskCanvas) {
+function createMaskPreviewDataUrl(imageCanvas, maskCanvas, finalGeometry) {
     const preview = document.createElement('canvas');
     preview.width = imageCanvas.width;
     preview.height = imageCanvas.height;
@@ -249,6 +250,25 @@ function createMaskPreviewDataUrl(imageCanvas, maskCanvas) {
 
     overlayCtx.putImageData(overlay, 0, 0);
     previewCtx.drawImage(overlayCanvas, 0, 0);
+
+    if (finalGeometry && !finalGeometry.isFallback) {
+        const lineWidth = Math.max(2, Math.round(Math.max(preview.width, preview.height) / 350));
+        const fontSize = Math.max(14, Math.round(Math.max(preview.width, preview.height) / 45));
+        previewCtx.save();
+        previewCtx.strokeStyle = '#24d6ff';
+        previewCtx.lineWidth = lineWidth;
+        previewCtx.beginPath();
+        previewCtx.ellipse(finalGeometry.cx, finalGeometry.cy, finalGeometry.rx, finalGeometry.ry, 0, 0, Math.PI * 2);
+        previewCtx.stroke();
+        previewCtx.font = `${fontSize}px sans-serif`;
+        previewCtx.textBaseline = 'top';
+        previewCtx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        previewCtx.fillRect(8, 8, fontSize * 10.5, fontSize * 1.6);
+        previewCtx.fillStyle = '#ffffff';
+        previewCtx.fillText('raw mask + final ellipse', 14, 12);
+        previewCtx.restore();
+    }
+
     return preview.toDataURL('image/png');
 }
 
@@ -310,44 +330,81 @@ function analyzeMask(maskCanvas) {
     const ctx = maskCanvas.getContext('2d', { willReadFrequently: true });
     const { width, height } = maskCanvas;
     const data = ctx.getImageData(0, 0, width, height).data;
-    let minX = width;
-    let minY = height;
-    let maxX = 0;
-    let maxY = 0;
-    let count = 0;
-    let sx = 0;
-    let sy = 0;
+    const pixelCount = width * height;
+    const visited = new Uint8Array(pixelCount);
+    const queue = new Int32Array(pixelCount);
+    let best = null;
+    let componentCount = 0;
 
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            if (data[(y * width + x) * 4 + 3] > 0) {
-                minX = Math.min(minX, x);
-                minY = Math.min(minY, y);
-                maxX = Math.max(maxX, x);
-                maxY = Math.max(maxY, y);
-                sx += x;
-                sy += y;
-                count++;
-            }
+    for (let start = 0; start < pixelCount; start++) {
+        if (visited[start] || data[start * 4 + 3] <= 127) continue;
+
+        componentCount++;
+        let head = 0;
+        let tail = 0;
+        let minX = width;
+        let minY = height;
+        let maxX = 0;
+        let maxY = 0;
+        let count = 0;
+        let sx = 0;
+        let sy = 0;
+
+        visited[start] = 1;
+        queue[tail++] = start;
+
+        while (head < tail) {
+            const p = queue[head++];
+            const x = p % width;
+            const y = (p - x) / width;
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+            sx += x;
+            sy += y;
+            count++;
+
+            if (x > 0) tail = enqueueMaskPixel(p - 1, data, visited, queue, tail);
+            if (x < width - 1) tail = enqueueMaskPixel(p + 1, data, visited, queue, tail);
+            if (y > 0) tail = enqueueMaskPixel(p - width, data, visited, queue, tail);
+            if (y < height - 1) tail = enqueueMaskPixel(p + width, data, visited, queue, tail);
+        }
+
+        if (!best || count > best.count) {
+            best = { minX, minY, maxX, maxY, count, sx, sy };
         }
     }
 
-    if (!count) {
+    if (!best) {
         const r = Math.min(width, height) * 0.22;
         return { cx: width / 2, cy: height / 2, rx: r, ry: r, isEmpty: true };
     }
 
     return {
-        cx: sx / count,
-        cy: sy / count,
-        rx: Math.max(8, (maxX - minX) / 2),
-        ry: Math.max(8, (maxY - minY) / 2),
-        minX,
-        minY,
-        maxX,
-        maxY,
+        cx: (best.minX + best.maxX) / 2,
+        cy: (best.minY + best.maxY) / 2,
+        centroidX: best.sx / best.count,
+        centroidY: best.sy / best.count,
+        rx: Math.max(8, (best.maxX - best.minX + 1) / 2),
+        ry: Math.max(8, (best.maxY - best.minY + 1) / 2),
+        minX: best.minX,
+        minY: best.minY,
+        maxX: best.maxX,
+        maxY: best.maxY,
+        componentCount,
+        mainComponentPixelCount: best.count,
         isEmpty: false
     };
+}
+
+function enqueueMaskPixel(p, data, visited, queue, tail) {
+    if (!visited[p] && data[p * 4 + 3] > 127) {
+        visited[p] = 1;
+        queue[tail++] = p;
+    }
+
+    return tail;
 }
 
 function createCutout(imageCanvas, maskCanvas, metadata) {
@@ -357,11 +414,12 @@ function createCutout(imageCanvas, maskCanvas, metadata) {
         return createFallbackCutout(imageCanvas, metadata || meta);
     }
 
-    const pad = Math.max(2, Math.round(Math.max(meta.maxX - meta.minX + 1, meta.maxY - meta.minY + 1) * 0.04));
-    const sx = Math.max(0, meta.minX - pad);
-    const sy = Math.max(0, meta.minY - pad);
-    const ex = Math.min(imageCanvas.width, meta.maxX + 1 + pad);
-    const ey = Math.min(imageCanvas.height, meta.maxY + 1 + pad);
+    const geometry = createFinalEllipseGeometry(meta, imageCanvas);
+    const pad = Math.max(2, Math.round(Math.max(geometry.rx, geometry.ry) * 0.08));
+    const sx = Math.max(0, Math.floor(geometry.cx - geometry.rx - pad));
+    const sy = Math.max(0, Math.floor(geometry.cy - geometry.ry - pad));
+    const ex = Math.min(imageCanvas.width, Math.ceil(geometry.cx + geometry.rx + pad));
+    const ey = Math.min(imageCanvas.height, Math.ceil(geometry.cy + geometry.ry + pad));
     const sw = Math.max(1, ex - sx);
     const sh = Math.max(1, ey - sy);
     const output = document.createElement('canvas');
@@ -371,10 +429,33 @@ function createCutout(imageCanvas, maskCanvas, metadata) {
     out.clearRect(0, 0, sw, sh);
     out.drawImage(imageCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
     out.globalCompositeOperation = 'destination-in';
-    out.drawImage(maskCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
+    out.beginPath();
+    out.ellipse(geometry.cx - sx, geometry.cy - sy, geometry.rx, geometry.ry, 0, 0, Math.PI * 2);
+    out.fillStyle = '#ffffff';
+    out.fill();
     out.globalCompositeOperation = 'source-over';
 
-    return { dataUrl: output.toDataURL('image/png'), width: sw, height: sh };
+    return { dataUrl: output.toDataURL('image/png'), width: sw, height: sh, geometry };
+}
+
+function createFinalEllipseGeometry(meta, imageCanvas) {
+    const minSide = Math.min(imageCanvas.width, imageCanvas.height);
+    const averageRadius = Math.max(8, (meta.rx + meta.ry) / 2);
+    const ratioLimit = 1.38;
+    let rx = clamp(meta.rx, averageRadius / ratioLimit, averageRadius * ratioLimit);
+    let ry = clamp(meta.ry, averageRadius / ratioLimit, averageRadius * ratioLimit);
+    const inflate = 1.08;
+    rx = clamp(rx * inflate, minSide * 0.06, imageCanvas.width / 2);
+    ry = clamp(ry * inflate, minSide * 0.06, imageCanvas.height / 2);
+
+    return {
+        cx: clamp(meta.cx, rx, imageCanvas.width - rx),
+        cy: clamp(meta.cy, ry, imageCanvas.height - ry),
+        rx,
+        ry,
+        mode: 'ellipse-from-main-mask-component',
+        isFallback: false
+    };
 }
 
 function createFallbackCutout(imageCanvas, metadata) {
@@ -399,7 +480,12 @@ function createFallbackCutout(imageCanvas, metadata) {
     out.fill();
     out.globalCompositeOperation = 'source-over';
 
-    return { dataUrl: output.toDataURL('image/png'), width: size, height: size };
+    return {
+        dataUrl: output.toDataURL('image/png'),
+        width: size,
+        height: size,
+        geometry: { cx: meta.cx, cy: meta.cy, rx: meta.rx, ry: meta.ry, mode: 'fallback-circle', isFallback: true }
+    };
 }
 
 function loadImage(src) {

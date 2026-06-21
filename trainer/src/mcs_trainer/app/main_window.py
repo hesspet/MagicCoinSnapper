@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPlainTextEdit,
+    QPushButton,
     QRadioButton,
     QSlider,
     QSpinBox,
@@ -252,6 +253,18 @@ class MainWindow(QMainWindow):
         rl.addWidget(self._brush_radio)
         rl.addWidget(self._eraser_radio)
         rl.addWidget(self._ellipse_radio)
+        ellipse_help = QLabel(
+            "Ellipse: Rahmen ziehen, Griffe/Innenbereich anpassen, dann uebernehmen. "
+            "Pfeiltasten bewegen, Shift+Pfeile skalieren, Enter uebernimmt, Esc verwirft."
+        )
+        ellipse_help.setWordWrap(True)
+        rl.addWidget(ellipse_help)
+        ellipse_apply = QPushButton("Ellipse uebernehmen")
+        ellipse_apply.clicked.connect(self._viewer.apply_ellipse_frame)
+        rl.addWidget(ellipse_apply)
+        ellipse_discard = QPushButton("Rahmen verwerfen")
+        ellipse_discard.clicked.connect(self._viewer.clear_ellipse_frame)
+        rl.addWidget(ellipse_discard)
         rh = QHBoxLayout()
         rh.addWidget(QLabel("Radius"))
         rh.addWidget(self._radius_slider, stretch=1)
