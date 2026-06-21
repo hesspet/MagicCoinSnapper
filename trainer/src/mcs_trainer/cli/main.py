@@ -150,6 +150,7 @@ def _check_ml() -> None:
         import torch  # noqa: F401
     except Exception as exc:
         console.print(f"[red]Fehler:[/red] {_ML_MISSING_MSG}")
+        print(f"TRAIN_FAILED error={_ML_MISSING_MSG}", flush=True)
         raise typer.Exit(1) from exc
 
 
@@ -162,6 +163,22 @@ def _resolve_device(value: str) -> str:
         return "cuda" if torch.cuda.is_available() else "cpu"
     except Exception:
         return "cpu"
+
+
+def _validate_device(value: str) -> None:
+    if value != "cuda":
+        return
+    try:
+        import torch
+
+        cuda_available = torch.cuda.is_available()
+    except Exception:
+        cuda_available = False
+    if not cuda_available:
+        msg = "CUDA wurde angefordert, ist aber in PyTorch nicht verfuegbar. Nutze --device auto oder --device cpu."
+        console.print(f"[red]Fehler:[/red] {msg}")
+        print(f"TRAIN_FAILED error={msg}", flush=True)
+        raise typer.Exit(1)
 
 
 @app.command("train")
@@ -179,18 +196,36 @@ def train_cmd(
 ) -> None:
     """Trainiert das Segmentierungsmodell."""
     _check_ml()
+    resolved = _resolve_device(device)
+    _validate_device(resolved)
     from mcs_trainer.ml.train_loop import train as train_fn
 
-    resolved = _resolve_device(device)
-    result = train_fn(
-        dataset_dir=dataset,
-        profile=profile,
-        device=resolved,
-        epochs=epochs,
-        batch_size=batch_size,
-        lr=lr,
-        seed=seed,
-        out_dir=out_dir,
+    print(
+        f"TRAIN_START epochs={epochs} batch_size={batch_size} device={resolved} profile={profile}",
+        flush=True,
+    )
+    try:
+        result = train_fn(
+            dataset_dir=dataset,
+            profile=profile,
+            device=resolved,
+            epochs=epochs,
+            batch_size=batch_size,
+            lr=lr,
+            seed=seed,
+            out_dir=out_dir,
+            progress_callback=lambda line: print(line, flush=True),
+        )
+    except Exception as exc:
+        print(f"TRAIN_FAILED error={exc}", flush=True)
+        raise typer.Exit(1) from exc
+    print(
+        "TRAIN_DONE "
+        f"run_dir={result.run_dir} "
+        f"best_dice={result.best_dice:.6f} "
+        f"best_iou={result.best_iou:.6f} "
+        f"epochs={result.epochs_run}",
+        flush=True,
     )
     table = Table(title="Train-Ergebnis")
     table.add_column("Feld", style="cyan")

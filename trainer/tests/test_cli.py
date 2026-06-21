@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+import sys
+from types import SimpleNamespace
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
+from mcs_trainer.cli import main as cli_main
 from mcs_trainer.cli.main import app
 from mcs_trainer.dataset.schemas import RAW_SCHEMA_VERSION
 
@@ -19,7 +23,28 @@ runner = CliRunner()
 def test_cli_version() -> None:
     res = runner.invoke(app, ["--version"])
     assert res.exit_code == 0
-    assert "0.1.0" in res.stdout
+    assert "0.3.0" in res.stdout
+
+
+def test_train_cuda_fails_early_when_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    fake_torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False))
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+    res = runner.invoke(app, ["train", "--dataset", "ds", "--device", "cuda"])
+
+    assert res.exit_code == 1
+    assert "CUDA wurde angefordert" in res.stdout
+    assert "TRAIN_FAILED error=CUDA wurde angefordert" in res.stdout
+    assert "TRAIN_START" not in res.stdout
+
+
+def test_resolve_device_auto_uses_cpu_when_cuda_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False))
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+    assert cli_main._resolve_device("auto") == "cpu"
 
 
 def test_cli_help() -> None:

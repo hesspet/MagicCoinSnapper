@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict, dataclass, field
+import time
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 
 import torch
 from torch.utils.data import DataLoader
@@ -13,6 +15,7 @@ from mcs_trainer.dataset.annotated_dataset import load_annotated
 from mcs_trainer.ml.dataset import CoinSegDataset
 from mcs_trainer.ml.metrics import dice_score, iou_score
 from mcs_trainer.ml.model import build_model
+from mcs_trainer.ml.progress import format_train_progress
 
 
 @dataclass
@@ -86,6 +89,7 @@ def train(
     lr: float,
     seed: int,
     out_dir: Path,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> TrainResult:
     dataset_dir = Path(dataset_dir).resolve()
     dev = _resolve_device(device)
@@ -118,6 +122,7 @@ def train(
     best_iou = -1.0
     epochs_run = 0
     history: list[dict[str, float]] = []
+    started = time.perf_counter()
 
     for epoch in range(1, epochs + 1):
         epochs_run = epoch
@@ -179,6 +184,21 @@ def train(
             {"model_state": model.state_dict(), "epoch": epoch},
             ckpt_dir / "last.pt",
         )
+        if progress_callback is not None:
+            elapsed_s = time.perf_counter() - started
+            eta_s = (elapsed_s / epoch) * max(epochs - epoch, 0)
+            progress_callback(
+                format_train_progress(
+                    epoch=epoch,
+                    total=epochs,
+                    train_loss=train_loss,
+                    val_loss=val_loss,
+                    val_dice=val_dice,
+                    val_iou=val_iou,
+                    elapsed_s=elapsed_s,
+                    eta_s=eta_s,
+                )
+            )
 
     if best_dice < 0.0 and val_dl is None:
         torch.save(

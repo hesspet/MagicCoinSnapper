@@ -3,12 +3,13 @@ from __future__ import annotations
 import shutil
 import sys
 import zipfile
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
 from PIL import Image
-from PySide6.QtCore import QProcess, Qt
+from PySide6.QtCore import QProcess, QProcessEnvironment, Qt
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -47,16 +48,27 @@ from mcs_trainer.dataset.schemas import (
     ANNOTATED_SCHEMA_VERSION,
     AnnotatedMetadata,
     AnnotatedSample,
+    RAW_SCHEMA_VERSION,
 )
 from mcs_trainer.app.image_viewer import ImageViewer
 from mcs_trainer.app.mask_editor import MaskEditor
 from mcs_trainer.app.metadata_panel import MetadataPanel
 from mcs_trainer.app import workflow
+from mcs_trainer.ml.progress import format_duration, parse_train_progress
 from mcs_trainer.utils.paths import slugify_dataset_id
 
 
 _ANNOTATED_ROOT = Path("trainer/data/annotated")
 _RAW_ROOT = Path("trainer/data/raw")
+
+
+def _cuda_available() -> bool:
+    try:
+        import torch
+
+        return bool(torch.cuda.is_available())
+    except Exception:
+        return False
 
 
 class TrainingConfigDialog(QDialog):
@@ -67,7 +79,8 @@ class TrainingConfigDialog(QDialog):
 
         self.profile = QLineEdit("general")
         self.device = QComboBox()
-        self.device.addItems(["auto", "cpu", "cuda"])
+        cuda_available = _cuda_available()
+        self.device.addItems(["auto", "cpu"] + (["cuda"] if cuda_available else []))
         self.epochs = QSpinBox()
         self.epochs.setRange(1, 10000)
         self.epochs.setValue(30)
@@ -81,6 +94,8 @@ class TrainingConfigDialog(QDialog):
 
         layout.addRow("Profil", self.profile)
         layout.addRow("Geraet", self.device)
+        if not cuda_available:
+            layout.addRow("", QLabel("CUDA nicht verfuegbar; auto nutzt CPU."))
         layout.addRow("Epochen", self.epochs)
         layout.addRow("Batch-Groesse", self.batch_size)
         layout.addRow("Lernrate", self.lr)
@@ -168,6 +183,8 @@ class MainWindow(QMainWindow):
         self._latest_package_path: Optional[Path] = None
         self._last_train_out_dir = Path("trainer/runs/coinseg")
         self._last_train_profile = "general"
+        self._training_active = False
+        self._train_output_buffer = ""
 
         self._editor = MaskEditor()
         self._viewer = ImageViewer(self._editor)
@@ -203,6 +220,8 @@ class MainWindow(QMainWindow):
 
         self._status = QStatusBar()
         self.setStatusBar(self._status)
+        self._train_status = QLabel("")
+        self._status.addPermanentWidget(self._train_status)
 
         self._train_process: Optional[QProcess] = None
         self._train_log = QPlainTextEdit()
@@ -264,12 +283,22 @@ class MainWindow(QMainWindow):
 
         self._act_save = QAction("Dataset speichern", self)
         self._act_save.setShortcut(QKeySequence("Ctrl+S"))
-        self._act_save.triggered.connect(self._do_save)
+        self._act_save.triggered.connect(lambda _checked=False: self._do_save())
         tb.addAction(self._act_save)
 
         self._act_export = QAction("Dataset ZIP exportieren", self)
         self._act_export.triggered.connect(self._do_export_zip)
         tb.addAction(self._act_export)
+
+        tb.addSeparator()
+
+        self._act_clear_mask = QAction("Maske leeren", self)
+        self._act_clear_mask.triggered.connect(self._clear_mask)
+        tb.addAction(self._act_clear_mask)
+
+        self._act_next = QAction("Weiter", self)
+        self._act_next.triggered.connect(self._next_sample)
+        tb.addAction(self._act_next)
 
         tb.addSeparator()
 
@@ -339,6 +368,8 @@ class MainWindow(QMainWindow):
         self._radius_slider.setValue(min(200, self._radius_slider.value() + 2))
 
     def _refresh_state(self) -> None:
+        if self._training_active:
+            return
         if self._metadata is None:
             self._status.showMessage("Kein Dataset geladen")
             self._metadata_panel.clear_panel()
@@ -398,12 +429,47 @@ class MainWindow(QMainWindow):
         """Oeffnet ein Annotated-Dataset aus einem Pfad."""
         if not self._confirm_discard_if_dirty():
             return
-        try:
-            metadata = load_annotated(Path(str(path)))
-        except Exception as exc:
-            QMessageBox.critical(self, "Fehler", f"Laden fehlgeschlagen: {exc}")
+        dataset_dir = Path(str(path))
+        meta_path = dataset_dir / "metadata.json"
+        if not meta_path.exists():
+            QMessageBox.critical(self, "Fehler", "metadata.json fehlt.")
             return
-        self._load_metadata(metadata, Path(str(path)))
+        try:
+            raw_meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            QMessageBox.critical(self, "Fehler", "metadata.json ist kein gueltiges JSON.")
+            return
+        except Exception as exc:
+            QMessageBox.critical(self, "Fehler", f"metadata.json konnte nicht gelesen werden: {exc}")
+            return
+        if not isinstance(raw_meta, dict):
+            QMessageBox.critical(self, "Fehler", "metadata.json ist ungueltig.")
+            return
+        schema = raw_meta.get("schemaVersion")
+        if schema == RAW_SCHEMA_VERSION:
+            QMessageBox.information(
+                self,
+                "Dataset oeffnen",
+                "Raw-Dataset erkannt. Bitte Raw-ZIP importieren.",
+            )
+            return
+        if schema != ANNOTATED_SCHEMA_VERSION:
+            if schema is None:
+                msg = "schemaVersion fehlt in metadata.json."
+            else:
+                msg = f"Unbekannte schemaVersion: {schema}"
+            QMessageBox.critical(self, "Fehler", msg)
+            return
+        try:
+            metadata = load_annotated(dataset_dir)
+        except Exception:
+            QMessageBox.critical(
+                self,
+                "Fehler",
+                "Annotated-Dataset ist ungueltig. Bitte metadata.json pruefen.",
+            )
+            return
+        self._load_metadata(metadata, dataset_dir)
 
     def _do_import_raw(self) -> None:
         if not self._confirm_discard_if_dirty():
@@ -434,8 +500,6 @@ class MainWindow(QMainWindow):
             )
 
     def _build_annotated_from_raw(self, raw_dir: Path) -> AnnotatedMetadata:
-        import json
-
         raw_meta = json.loads((raw_dir / "metadata.json").read_text(encoding="utf-8"))
         slug = slugify_dataset_id(raw_meta.get("datasetId", "dataset"))
         ann_dir = _ANNOTATED_ROOT / slug
@@ -566,6 +630,13 @@ class MainWindow(QMainWindow):
         new_row = min(self._image_list.count() - 1, row + 1) if row >= 0 else 0
         self._image_list.setCurrentRow(new_row)
 
+    def _clear_mask(self) -> None:
+        if self._metadata is None or self._index < 0 or self._editor.width == 0:
+            return
+        self._editor.clear()
+        self._viewer.refresh()
+        self._on_mask_edited()
+
     def _undo(self) -> None:
         if self._editor.undo():
             self._viewer.refresh()
@@ -576,7 +647,7 @@ class MainWindow(QMainWindow):
             self._viewer.refresh()
             self._on_mask_edited()
 
-    def _do_save(self) -> None:
+    def _do_save(self, show_message: bool = True) -> None:
         if self._metadata is None or self._dataset_dir is None:
             QMessageBox.information(self, "Speichern", "Kein Dataset geladen.")
             return
@@ -597,12 +668,18 @@ class MainWindow(QMainWindow):
             img.save(mask_path, format="PNG")
         save_annotated(self._metadata, self._dataset_dir)
         self._set_dirty(False)
+        if show_message:
+            QMessageBox.information(
+                self,
+                "Dataset speichern",
+                f"Dataset gespeichert:\n{self._dataset_dir}",
+            )
 
     def _do_export_zip(self) -> None:
         if self._metadata is None or self._dataset_dir is None:
             QMessageBox.information(self, "Export", "Kein Dataset geladen.")
             return
-        self._do_save()
+        self._do_save(show_message=False)
         default_name = f"mcs-annotated-dataset-{self._metadata.datasetId}.zip"
         default_path = self._dataset_dir.parent / default_name
         zip_path, _ = QFileDialog.getSaveFileName(
@@ -647,7 +724,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "Daten aufteilen", "Kein Dataset geladen.")
             return
         if self._dirty:
-            self._do_save()
+            self._do_save(show_message=False)
         try:
             result = workflow.split_dataset(self._dataset_dir)
         except Exception as exc:
@@ -671,20 +748,27 @@ class MainWindow(QMainWindow):
             return
         config = dialog.values()
         if self._dirty:
-            self._do_save()
+            self._do_save(show_message=False)
         self._train_dock.setVisible(True)
         self._train_log.clear()
+        self._training_active = True
+        self._train_output_buffer = ""
+        self._train_status.setText("Training startet...")
         if self._train_process is not None:
             self._train_process.kill()
             self._train_process.deleteLater()
         proc = QProcess(self)
         proc.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
         proc.readyReadStandardOutput.connect(lambda: self._on_train_output(proc))
-        proc.finished.connect(lambda code, status: self._on_train_finished(code))
+        proc.finished.connect(lambda code, status: self._on_train_finished(code, status))
+        env = QProcessEnvironment.systemEnvironment()
+        env.insert("PYTHONUNBUFFERED", "1")
+        proc.setProcessEnvironment(env)
         self._train_process = proc
         self._last_train_profile = str(config["profile"])
         self._last_train_out_dir = Path("trainer/runs/coinseg")
         args = [
+            "-u",
             "-m",
             "mcs_trainer.cli.main",
             "train",
@@ -858,16 +942,46 @@ class MainWindow(QMainWindow):
         data = bytes(proc.readAllStandardOutput()).decode("utf-8", errors="replace")
         if data:
             self._train_log.appendPlainText(data)
+            self._train_output_buffer += data
+            lines = self._train_output_buffer.splitlines(keepends=True)
+            if lines and not lines[-1].endswith(("\n", "\r")):
+                self._train_output_buffer = lines.pop()
+            else:
+                self._train_output_buffer = ""
+            for line in lines:
+                self._update_train_status_from_line(line.strip())
 
-    def _on_train_finished(self, code: int) -> None:
+    def _update_train_status_from_line(self, line: str) -> None:
+        progress = parse_train_progress(line)
+        if progress is not None:
+            self._train_status.setText(
+                "Training: "
+                f"Epoche {progress.epoch}/{progress.total} "
+                f"({progress.percent:.1f}%, ETA {format_duration(progress.eta_s)})"
+            )
+            return
+        if line.startswith("TRAIN_FAILED"):
+            self._train_status.setText("Training fehlgeschlagen")
+        elif line.startswith("TRAIN_DONE"):
+            self._train_status.setText("Training abgeschlossen")
+
+    def _on_train_finished(self, code: int, status: QProcess.ExitStatus) -> None:
         newest = workflow.find_newest_run(self._last_train_out_dir, self._last_train_profile)
-        if newest is not None:
+        if code == 0 and status == QProcess.ExitStatus.NormalExit and newest is not None:
             self._latest_run_dir = newest
             candidate = newest / "coin-segmentation.onnx"
             if candidate.exists():
                 self._latest_onnx_path = candidate
             self._train_log.appendPlainText(f"\nLetzter Run: {newest}")
+            self._train_status.setText(f"Training abgeschlossen: {newest}")
+        else:
+            self._train_status.setText(f"Training fehlgeschlagen (Exit-Code {code})")
+            self._train_log.appendPlainText(
+                f"\nTraining fehlgeschlagen (Exit-Code {code})"
+            )
+        self._training_active = False
         self._train_log.appendPlainText(f"\n[Prozess beendet, Exit-Code {code}]")
+        self._refresh_state()
 
     def closeEvent(self, event) -> None:
         if not self._confirm_discard_if_dirty():
