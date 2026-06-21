@@ -1,6 +1,6 @@
 {
   "schemaVersion": "mcs-model-index-v1",
-  "defaultModelId": "raw-mqnoow3n-general",
+  "defaultModelId": "poker2",
   "models": [
     {
       "id": "raw-mqnoow3n-general",
@@ -13,6 +13,51 @@
       "version": "0.3.0",
       "modelUrl": "models/raw-mqnoow3n-general/coin-segmentation.onnx",
       "metadataUrl": "models/raw-mqnoow3n-general/model.json",
+      "contract": "mcs-segmentation-512-v1",
+      "input": {
+        "name": "input",
+        "dtype": "float32",
+        "shape": [
+          1,
+          3,
+          512,
+          512
+        ],
+        "layout": "NCHW",
+        "colorOrder": "RGB",
+        "normalization": "/255",
+        "range": [
+          0.0,
+          1.0
+        ]
+      },
+      "output": {
+        "name": "mask",
+        "dtype": "float32",
+        "shape": [
+          1,
+          1,
+          512,
+          512
+        ],
+        "range": [
+          0.0,
+          1.0
+        ],
+        "threshold": 0.5
+      }
+    },
+    {
+      "id": "poker2",
+      "displayName": "Coin Segmentation2",
+      "description": "Segmentierungsmodell fuer MagicCoinSnapper2",
+      "objectType": "coin",
+      "currency": "Poker",
+      "useCase": "segmentation",
+      "profile": "general",
+      "version": "0.4.0",
+      "modelUrl": "models/poker2/coin-segmentation.onnx",
+      "metadataUrl": "models/poker2/model.json",
       "contract": "mcs-segmentation-512-v1",
       "input": {
         "name": "input",
