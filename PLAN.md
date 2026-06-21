@@ -155,7 +155,7 @@
 
 ### Umfang
 
-Der separate Desktop-Trainer unter `trainer/` wurde als Python-3.12-Paket `mcs_trainer` (editable pip-installiert) vollstaendig umgesetzt: CLI-Kern, ML-Trainingspipeline und PySide6-Annotation-GUI.
+Der separate Desktop-Trainer unter `trainer/` wurde als Python-3.12-Paket `mcs_trainer` (editable pip-installiert) vollständig umgesetzt: CLI-Kern, ML-Trainingspipeline und PySide6-Annotation-GUI.
 
 ### CLI-Befehle (8, alle funktionstuechtig)
 
@@ -174,11 +174,11 @@ mcs-trainer gui [--dataset <dir>]
 
 - **Pydantic v2** fuer Raw-/Annotated-Schemas (`RAW_SCHEMA_VERSION`, `ANNOTATED_SCHEMA_VERSION`).
 - **Preprocessing spiegelt die PWA exakt**: direkter Stretch-Resize auf 512x512, RGB, /255-Normalisierung, kein Letterboxing; Masken {0,255}->{0,1}.
-- **Lazy Imports** fuer optionale Dependencies (ML, GUI), sodass `mcs-trainer --help` auch ohne torch/PySide6 laeuft.
+- **Lazy Imports** für optionale Dependencies (ML, GUI), sodass `mcs-trainer --help` auch ohne torch/PySide6 läuft.
 - **U-Net** (compact, base=32, sigmoid output), BCEWithLogitsLoss + Adam, best-by-val-dice Checkpoints, auto-inkrementierende Run-Verzeichnisse.
 - **ONNX-Export** mit festen Shapes [1,3,512,512]->[1,1,512,512], Input-Name "input", Output-Name "mask", onnxsim-Vereinfachung.
 - **Modellpaket** als zip mit onnx, model.json, metrics.json, preprocessing.json, README.md, SHA256SUMS.txt.
-- **GUI**: ImageViewer (Zoom/Pan), MaskEditor (Pinsel/Radierer/Ellipse, Undo/Redo), MetadataPanel (notes/tags/excluded), MainWindow mit Toolbar, Tastatur-Navigation, QProcess-basiertem Training/Export und PWA-Modelluebernahme.
+- **GUI**: ImageViewer (Zoom/Pan), MaskEditor (Pinsel/Radierer/Ellipse, Undo/Redo), MetadataPanel (notes/tags/excluded), MainWindow mit Toolbar, Tastatur-Navigation, QProcess-basiertem Training/Export und PWA-Modellübernahme.
 - **Modellverwaltung**: Modelle werden unter `wwwroot/models/<model-id>/` installiert; `wwwroot/models/manifest.json` nutzt `schemaVersion = mcs-model-index-v1`; PWA-Settings bieten die Scan-Modell-Auswahl mit Legacy-Fallback auf `wwwroot/models/coin-segmentation.onnx`.
 
 ### Aufgetretene Probleme & Fixes
@@ -187,10 +187,10 @@ mcs-trainer gui [--dataset <dir>]
 
 ### Verifiziert
 
-- 28 Tests via `python -m pytest -q` aus `trainer/` gruen (Import, Raw-/Annotated-Validierung, Splits, CLI-Smoke).
+- 28 Tests via `python -m pytest -q` aus `trainer/` grün (Import, Raw-/Annotated-Validierung, Splits, CLI-Smoke).
 - End-to-End-Smoke: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], Bereich 0..1) -> package-model.
-- ONNX-Modellvertrag gegen PWA validiert; Modelluebernahme in `wwwroot/models/<model-id>/` mit Manifest und Backup-Verhalten dokumentiert.
+- ONNX-Modellvertrag gegen PWA validiert; Modellübernahme in `wwwroot/models/<model-id>/` mit Manifest und Backup-Verhalten dokumentiert.
 
 ### Offen
 
-- Das Smoke-Test-Modell ist KEIN Produktionsmodell. Es muss mit echten Muenzbildern trainiert und ueber den Manifest-basierten Modellworkflow ersetzt werden.
+- Das Smoke-Test-Modell ist KEIN Produktionsmodell. Es muss mit echten Münzbildern trainiert und über den Manifest-basierten Modellworkflow ersetzt werden.

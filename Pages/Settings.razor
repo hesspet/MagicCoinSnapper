@@ -6,7 +6,7 @@
     <MudStack Spacing="4">
         <MudStack Spacing="1">
             <h1 class="mcs-page-title">Einstellungen</h1>
-            <MudText Class="mcs-lead">Optionen fuer Kamera, PWA und spaetere Scan-Ergebnisse.</MudText>
+            <MudText Class="mcs-lead">Optionen für Kamera, PWA und spätere Scan-Ergebnisse.</MudText>
         </MudStack>
 
         <MudPaper Elevation="0" Class="mcs-panel">
@@ -14,7 +14,7 @@
                 <MudText Typo="Typo.subtitle1">Darstellung</MudText>
                 <MudSwitch T="bool" Value="_isDarkDesign" ValueChanged="OnDesignChanged" Color="Color.Primary" Label="@($"Design: {(_isDarkDesign ? "Dunkel" : "Hell")}")" />
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    Waehle zwischen dunklem Standarddesign und heller Oberflaeche. Kamera- und Bildflaechen bleiben kontrastreich.
+                    Wähle zwischen dunklem Standarddesign und heller Oberfläche. Kamera- und Bildflächen bleiben kontrastreich.
                 </MudText>
             </MudStack>
         </MudPaper>
@@ -23,7 +23,7 @@
             <MudStack Spacing="3">
                 <MudText Typo="Typo.subtitle1">Scan-Modell</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    Waehle das ONNX-Modell fuer neue Scans. Ohne Modell bleibt die Heuristik aktiv.
+                    Wähle das ONNX-Modell für neue Scans. Ohne Modell bleibt die Heuristik aktiv.
                 </MudText>
 
                 @if (!_modelListLoaded)
@@ -74,7 +74,7 @@
                 <MudText Typo="Typo.subtitle1">Expertenmodus</MudText>
                 <MudSwitch T="bool" Value="_expertMode" ValueChanged="OnExpertModeChanged" Color="Color.Primary" Label="Bildersammlung anzeigen" />
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    Aktiviert den lokalen Menuepunkt fuer Rohbilder, die Du als ZIP fuer das Desktop-Training exportieren kannst.
+                    Aktiviert den lokalen Menüpunkt für Rohbilder, die Du als ZIP für das Desktop-Training exportieren kannst.
                 </MudText>
             </MudStack>
         </MudPaper>

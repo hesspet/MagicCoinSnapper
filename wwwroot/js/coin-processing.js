@@ -22,8 +22,8 @@ export async function extractCoinFromDataUrl(dataUrl) {
         height: cutout.height,
         modelDisplayName: proposal.modelDisplayName ?? null,
         message: proposal.usedOnnx
-            ? `Muenze mit ${proposal.modelDisplayName ?? 'ONNX'} freigestellt.`
-            : 'Muenze per Heuristik freigestellt. ONNX-Modell fehlt noch.'
+            ? `Münze mit ${proposal.modelDisplayName ?? 'ONNX'} freigestellt.`
+            : 'Münze per Heuristik freigestellt. ONNX-Modell fehlt noch.'
     };
 }
 

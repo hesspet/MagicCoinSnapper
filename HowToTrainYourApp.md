@@ -1,6 +1,6 @@
 # How To Train Your App
 
-Diese Anleitung erklaert den neuen Trainingsablauf fuer MagicCoinSnapper.
+Diese Anleitung erklärt den neuen Trainingsablauf für MagicCoinSnapper.
 
 Kurz gesagt: Das Smartphone sammelt Bilder. Der Desktop macht die genaue Markierung. Das Modell entsteht danach lokal im Trainingsworkflow.
 
@@ -8,12 +8,12 @@ Kurz gesagt: Das Smartphone sammelt Bilder. Der Desktop macht die genaue Markier
 
 Auf dem Smartphone ist die App fuer die Vorfuehrung gedacht: schnell, dunkel, einhaendig bedienbar und offline.
 
-Masken sauber zu zeichnen ist dort aber unpraktisch. Mit Maus, grossem Bildschirm und Tastatur geht das deutlich besser. Darum wird die Arbeit getrennt:
+Masken sauber zu zeichnen ist dort aber unpraktisch. Mit Maus, großem Bildschirm und Tastatur geht das deutlich besser. Darum wird die Arbeit getrennt:
 
 - Smartphone: Rohbilder sammeln.
-- Desktop-Trainer: Bilder sichten, Muenze markieren, Metadaten pflegen.
+- Desktop-Trainer: Bilder sichten, Münze markieren, Metadaten pflegen.
 - Trainingspipeline: Modell trainieren, testen und als ONNX exportieren.
-- PWA: fertiges Modell in den Einstellungen fuer den Scan auswaehlen.
+- PWA: fertiges Modell in den Einstellungen für den Scan auswählen.
 
 ## Was bedeutet Training jetzt?
 
@@ -21,30 +21,30 @@ Training bedeutet nicht, dass die PWA selbst auf dem Smartphone rechnet und lern
 
 Die PWA liefert nur gute Beispielbilder. Auf dem Desktop entstehen daraus saubere Trainingsdaten: Bild plus Maske plus Metadaten.
 
-Aus diesen Trainingsdaten wird ein Modell gebaut. Dieses Modell wird spaeter vom Trainer in die App uebernommen oder als Modellpaket bereitgestellt.
+Aus diesen Trainingsdaten wird ein Modell gebaut. Dieses Modell wird später vom Trainer in die App übernommen oder als Modellpaket bereitgestellt.
 
 ## Was ist eine Maske?
 
-Eine Maske markiert die Muenze im Bild.
+Eine Maske markiert die Münze im Bild.
 
-Alles innerhalb der Maske gehoert zur Muenze. Alles ausserhalb wird beim spaeteren Scan transparent.
+Alles innerhalb der Maske gehört zur Münze. Alles außerhalb wird beim späteren Scan transparent.
 
 Diese Maske zeichnest Du nicht mehr auf dem Smartphone, sondern im Desktop-Trainer.
 
 ## Schritt 1: Expertenmodus aktivieren
 
-1. Oeffne MagicCoinSnapper.
+1. Öffne MagicCoinSnapper.
 2. Gehe zu **Einstellungen**.
 3. Aktiviere **Bildersammlung anzeigen**.
 4. Im Menue erscheint **Bildersammlung**.
 
-Der Schalter ist lokal. Er gilt nur auf diesem Geraet und nur in diesem Browser.
+Der Schalter ist lokal. Er gilt nur auf diesem Gerät und nur in diesem Browser.
 
 ## Schritt 2: Rohbilder sammeln
 
 1. Gehe zu **Scan**.
 2. Nimm ein Bild auf oder lade ein Bild aus der Galerie.
-3. Oeffne **Bildersammlung**.
+3. Öffne **Bildersammlung**.
 4. Tippe auf **Aktuelles Scanbild verwenden**.
 5. Fuege optional eine kurze Notiz hinzu.
 6. Tippe auf **Rohbild speichern**.
@@ -54,7 +54,7 @@ Du kannst in der Bildersammlung auch direkt ein Bild aus der Galerie laden.
 
 ## Schritt 3: Raw-ZIP exportieren
 
-1. Oeffne **Bildersammlung**.
+1. Öffne **Bildersammlung**.
 2. Pruefe die Anzahl der gesammelten Rohbilder.
 3. Tippe auf **Raw-ZIP exportieren**.
 4. Die ZIP-Datei landet im Download- oder Dateien-Bereich Deines Smartphones.
@@ -74,7 +74,7 @@ mcs-raw-images-2026-06-20.zip
   metadata.json
 ```
 
-Die `metadata.json` beschreibt die Bilder und enthaelt Notizen, Quelle, Groesse und Zeitpunkt.
+Die `metadata.json` beschreibt die Bilder und enthält Notizen, Quelle, Größe und Zeitpunkt.
 
 ## Schritt 4: Auf dem Desktop markieren
 
@@ -82,67 +82,67 @@ Der Desktop-Trainer importiert das Raw-ZIP.
 
 Dort kannst Du:
 
-- Bilder durchblaettern.
+- Bilder durchblättern.
 - Reinzoomen.
-- Die Muenze mit Maus oder Stift markieren.
+- Die Münze mit Maus oder Stift markieren.
 - Fehler schnell korrigieren.
 - Bilder ausschliessen.
 - Metadaten pflegen.
 - Trainingsgruppen setzen.
-- Daten pruefen und aufteilen.
+- Daten prüfen und aufteilen.
 - Training starten und Modell testen.
-- ONNX exportieren, Modellpaket erstellen und das Modell in die PWA uebernehmen.
+- ONNX exportieren, Modellpaket erstellen und das Modell in die PWA übernehmen.
 
 Das ist der richtige Ort fuer genaue Maskenarbeit.
 
 ## Welche Metadaten sind sinnvoll?
 
-Metadaten helfen spaeter, verschiedene Modelle zu trainieren.
+Metadaten helfen später, verschiedene Modelle zu trainieren.
 
 Beispiele:
 
-- Muenze in Hand.
+- Münze in Hand.
 - Filzuntergrund.
-- Pokermuenze.
+- Pokermünze.
 - Silberdollar.
-- Buehnenlicht.
+- Bühnenlicht.
 - Sharpie-Markierung sichtbar.
 - Schwieriger Fall.
 - Fuer allgemeines Modell geeignet.
 - Fuer Spezialmodell geeignet.
 
-Damit kannst Du spaeter gezielt trainieren: allgemein, nur Pokermuenzen, nur eine bestimmte Muenze oder nur eine bestimmte Show-Situation.
+Damit kannst Du später gezielt trainieren: allgemein, nur Pokermünzen, nur eine bestimmte Münze oder nur eine bestimmte Show-Situation.
 
 ## Allgemeines Modell oder Spezialmodell?
 
-Ein allgemeines Modell soll fuer viele Anwender funktionieren. Dafuer braucht es viele unterschiedliche Bilder: verschiedene Haende, Muenzen, Lichtverhaeltnisse und Hintergruende.
+Ein allgemeines Modell soll für viele Anwender funktionieren. Dafür braucht es viele unterschiedliche Bilder: verschiedene Hände, Münzen, Lichtverhältnisse und Hintergründe.
 
-Ein Spezialmodell ist enger. Es kann zum Beispiel auf eine bestimmte Muenze, eine bestimmte Buehne oder einen bestimmten Performer abgestimmt sein.
+Ein Spezialmodell ist enger. Es kann zum Beispiel auf eine bestimmte Münze, eine bestimmte Bühne oder einen bestimmten Performer abgestimmt sein.
 
-Fuer Deine Dienstleistung ist das spannend: Zauberer koennen Rohbilder einreichen, und daraus kann ein passendes Modell entstehen.
+Für Deine Dienstleistung ist das spannend: Zauberer können Rohbilder einreichen, und daraus kann ein passendes Modell entstehen.
 
 ## Gute Rohbilder
 
 Sammle Bilder, die zur echten Nutzung passen.
 
-- Muenze in einer Hand.
-- Muenze auf Filz oder einfarbigem Untergrund.
-- Verschiedene Muenzen und Pokermuenzen.
-- Helle und dunkle Muenzen.
-- Verschiedene Lichtverhaeltnisse.
-- Schatten und leichte Schraeglage.
+- Münze in einer Hand.
+- Münze auf Filz oder einfarbigem Untergrund.
+- Verschiedene Münzen und Pokermünzen.
+- Helle und dunkle Münzen.
+- Verschiedene Lichtverhältnisse.
+- Schatten und leichte Schräglage.
 - Sharpie-Initialen oder Markierungen.
 
-Schwierige Bilder sind okay, solange man die Muenze noch sinnvoll markieren kann.
+Schwierige Bilder sind okay, solange man die Münze noch sinnvoll markieren kann.
 
 ## Schlechte Rohbilder
 
 Diese Bilder helfen meistens wenig:
 
 - stark unscharf.
-- Muenze abgeschnitten.
-- Muenze fast vollstaendig verdeckt.
-- mehrere Muenzen dicht nebeneinander.
+- Münze abgeschnitten.
+- Münze fast vollständig verdeckt.
+- mehrere Münzen dicht nebeneinander.
 - Bild so dunkel oder reflektierend, dass der Rand nicht mehr erkennbar ist.
 
 Wenn Du beim Markieren selbst raten muesstest, ist das Bild wahrscheinlich kein gutes Trainingsbild.
@@ -158,23 +158,23 @@ mcs-annotated-dataset-v1.zip
   metadata.json
 ```
 
-Danach laeuft der Trainingsprozess. Daraus entsteht ein ONNX-Modell und optional ein Modellpaket:
+Danach läuft der Trainingsprozess. Daraus entsteht ein ONNX-Modell und optional ein Modellpaket:
 
 ```text
 coin-segmentation.onnx
 mcs-model-<profile>-<version>.zip
 ```
 
-Beim Uebernehmen in die PWA installiert der Trainer das Modell unter `wwwroot/models/<model-id>/` und aktualisiert `wwwroot/models/manifest.json` (`schemaVersion = mcs-model-index-v1`). Wenn ein vorhandenes Modell ersetzt wird, erstellt die GUI nach Bestaetigung ein Backup.
+Beim Übernehmen in die PWA installiert der Trainer das Modell unter `wwwroot/models/<model-id>/` und aktualisiert `wwwroot/models/manifest.json` (`schemaVersion = mcs-model-index-v1`). Wenn ein vorhandenes Modell ersetzt wird, erstellt die GUI nach Bestätigung ein Backup.
 
-In MagicCoinSnapper waehlst Du das Scan-Modell unter **Einstellungen**. Ohne Manifest nutzt die App weiterhin den alten Pfad `wwwroot/models/coin-segmentation.onnx`, falls diese Datei vorhanden ist.
+In MagicCoinSnapper wählst Du das Scan-Modell unter **Einstellungen**. Ohne Manifest nutzt die App weiterhin den alten Pfad `wwwroot/models/coin-segmentation.onnx`, falls diese Datei vorhanden ist.
 
 ## Datenschutz
 
 Die PWA sammelt Bilder lokal im Browser.
 
-Erst wenn Du ein ZIP exportierst und weitergibst, verlassen die Bilder Dein Geraet. Der Versand passiert bewusst und manuell mit Werkzeugen Deiner Wahl.
+Erst wenn Du ein ZIP exportierst und weitergibst, verlassen die Bilder Dein Gerät. Der Versand passiert bewusst und manuell mit Werkzeugen Deiner Wahl.
 
 ## Kurz gesagt
 
-Du sammelst auf dem Smartphone echte Beispielbilder. Auf dem Desktop werden sie sauber markiert, trainiert und als Modell in die PWA uebernommen. Die Vorfuehrapp bleibt schlank, schnell und offlinefaehig.
+Du sammelst auf dem Smartphone echte Beispielbilder. Auf dem Desktop werden sie sauber markiert, trainiert und als Modell in die PWA übernommen. Die Vorführapp bleibt schlank, schnell und offlinefähig.

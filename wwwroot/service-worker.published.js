@@ -42,7 +42,7 @@ async function onActivate(event) {
         .map(key => caches.delete(key)));
 
     // Bestehende Clients sofort vom neuen SW steuern lassen, damit beim
-    // naechsten Reload garantiert die neuen Assets ausgeliefert werden.
+    // nächsten Reload garantiert die neuen Assets ausgeliefert werden.
     await self.clients.claim();
 }
 

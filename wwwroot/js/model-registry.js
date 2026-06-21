@@ -74,7 +74,7 @@ async function createLegacyIndex() {
         models: [normalizeModel({
             id: LEGACY_MODEL_ID,
             displayName: 'Legacy-ONNX-Modell',
-            description: 'Gebundeltes Standardmodell fuer die Muenzsegmentierung.',
+            description: 'Gebündeltes Standardmodell für die Münzsegmentierung.',
             modelUrl: LEGACY_MODEL_PATH,
             output: { threshold: 0.5 }
         }, document.baseURI)]

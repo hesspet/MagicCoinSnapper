@@ -6,7 +6,7 @@ Dieses Dokument beschreibt den geplanten Desktop-/CLI-Trainer fuer MagicCoinSnap
 
 Die PWA bleibt die Vorfuehr- und Sammel-App. Sie sammelt Rohbilder auf dem Smartphone und exportiert ein ZIP.
 
-Der Trainer laeuft lokal auf dem Desktop, zuerst Windows-only. Dort werden Bilder gesichtet, Masken gezeichnet, Metadaten gepflegt, Trainingslaeufe gestartet und ONNX-Modelle erzeugt.
+Der Trainer läuft lokal auf dem Desktop, zuerst Windows-only. Dort werden Bilder gesichtet, Masken gezeichnet, Metadaten gepflegt, Trainingsläufe gestartet und ONNX-Modelle erzeugt.
 
 ## Entscheidungen
 
@@ -117,16 +117,16 @@ Maskenformat:
 
 - PNG
 - 8-bit Graustufen
-- gleiche Groesse wie Originalbild
+- gleiche Größe wie Originalbild
 - `0 = Hintergrund`
-- `255 = Muenze`
+- `255 = Münze`
 
 ## Desktop-App MVP
 
 - Raw-ZIP importieren
 - Bildliste anzeigen
 - Bildviewer mit Zoom/Pan
-- Vor/zurueck per Tastatur
+- Vor/zurück per Tastatur
 - Maske zeichnen
 - Radierer
 - Kreis/Ellipse als Startform
@@ -141,7 +141,7 @@ Maskenformat:
 - Trainingslog anzeigen
 - ONNX exportieren
 - Modellpaket erstellen
-- Modell in PWA uebernehmen
+- Modell in PWA übernehmen
 
 ## CLI MVP
 
@@ -157,10 +157,10 @@ mcs-trainer package-model --onnx .\exports\coin-segmentation.onnx
 
 ## Trainingsprofile
 
-- `general`: allgemeines Modell fuer viele Muenzen, Haende und Lichtbedingungen
-- `poker-coins`: spezialisiert auf Pokermuenzen
-- `silver-dollar`: spezialisiert auf bestimmte Muenztypen
-- `stage-light`: spezialisiert auf Buehnenlicht
+- `general`: allgemeines Modell für viele Münzen, Hände und Lichtbedingungen
+- `poker-coins`: spezialisiert auf Pokermünzen
+- `silver-dollar`: spezialisiert auf bestimmte Münztypen
+- `stage-light`: spezialisiert auf Bühnenlicht
 - `customer-*`: kundenspezifisches Fine-Tuning
 
 ## ONNX-Vertrag Mit Der PWA
@@ -177,7 +177,7 @@ output:
   name: mask
   shape: [1, 1, 512, 512]
   range: 0..1
-  meaning: Muenzwahrscheinlichkeit
+  meaning: Münzwahrscheinlichkeit
   threshold: 0.5
 ```
 
@@ -206,21 +206,21 @@ mcs-model-general-1.0.0.zip
 2. CLI-Grundlage mit Raw-ZIP-Import bauen. [erledigt] `import-raw` per Typer, `raw_zip.py`.
 3. Dataset-Schema und Validierung implementieren. [erledigt] Pydantic-v2-Schemas, `validate` fuer raw + annotated.
 4. PySide6-Bildviewer bauen. [erledigt] `ImageViewer` mit Zoom/Pan.
-5. Maskenwerkzeuge hinzufuegen. [erledigt] Pinsel/Radierer/Ellipse, Undo/Redo, `MaskEditor`.
+5. Maskenwerkzeuge hinzufügen. [erledigt] Pinsel/Radierer/Ellipse, Undo/Redo, `MaskEditor`.
 6. Metadatenpanel und Dataset-Speicherung ergaenzen. [erledigt] `MetadataPanel` (notes/tags/excluded), `annotated_dataset.py`.
 7. Trainingspipeline mit PyTorch bauen. [erledigt] U-Net (base=32), `train`/`evaluate`, BCE+Adam, Checkpoints.
 8. ONNX-Export und ONNX-Validierung ergaenzen. [erledigt] `export-onnx`, feste Shapes [1,3,512,512]->[1,1,512,512], onnxsim.
 9. Modellpaket-Erzeugung bauen. [erledigt] `package-model`, zip mit onnx/model.json/metrics.json/preprocessing.json/README/SHA256SUMS.
-10. PWA-Smoke-Test und Modelluebernahme. [erledigt] Modellinstallation unter `wwwroot/models/<model-id>/`, Manifest-Update und Legacy-Fallback dokumentiert; aktuell Smoke-Modell, noch kein Produktionsmodell.
+10. PWA-Smoke-Test und Modellübernahme. [erledigt] Modellinstallation unter `wwwroot/models/<model-id>/`, Manifest-Update und Legacy-Fallback dokumentiert; aktuell Smoke-Modell, noch kein Produktionsmodell.
 
 ## Status
 
-Alle 10 Phasen sind abgeschlossen und verifiziert. Die CLI hat 8 Befehle (`import-raw`, `validate`, `split`, `train`, `evaluate`, `export-onnx`, `package-model`, `gui`). 28 Tests via `python -m pytest -q` aus `trainer/` gruen. End-to-end-Smoke verifiziert: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], 0..1) -> package-model -> Modell in PWA uebernommen.
+Alle 10 Phasen sind abgeschlossen und verifiziert. Die CLI hat 8 Befehle (`import-raw`, `validate`, `split`, `train`, `evaluate`, `export-onnx`, `package-model`, `gui`). 28 Tests via `python -m pytest -q` aus `trainer/` grün. End-to-end-Smoke verifiziert: validate -> split (8/1/1) -> train (5 Epochen, val dice 0.99) -> evaluate (test dice 0.99) -> export-onnx (Input [1,3,512,512], Output [1,1,512,512], 0..1) -> package-model -> Modell in PWA übernommen.
 
-## Naechste Schritte
+## Nächste Schritte
 
-- Smoke-Test-Modell durch ein mit echten Muenzbildern trainiertes Produktionsmodell ersetzen.
+- Smoke-Test-Modell durch ein mit echten Münzbildern trainiertes Produktionsmodell ersetzen.
 - Weitere Trainingsprofile implementieren (`poker-coins`, `silver-dollar`, `stage-light`, `customer-*`).
-- Smartere Splits: gleiche Muenze/Session nicht gleichzeitig in Train und Test.
+- Smartere Splits: gleiche Münze/Session nicht gleichzeitig in Train und Test.
 - GUI Active-Learning Verbesserungen.
-- Produktionsmodell mit echten Muenzbildern trainieren und in PWA ausliefern.
+- Produktionsmodell mit echten Münzbildern trainieren und in PWA ausliefern.

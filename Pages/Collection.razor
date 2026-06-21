@@ -8,7 +8,7 @@
         <MudStack Spacing="1" Class="collection-header">
             <h1>Bildersammlung</h1>
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Bilder fuer das Desktop-Training sammeln und als ZIP exportieren.
+                Bilder für das Desktop-Training sammeln und als ZIP exportieren.
             </MudText>
         </MudStack>
 
@@ -19,10 +19,10 @@
                     <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Primary" Size="Size.Large" />
                     <MudText Typo="Typo.subtitle1">Expertenmodus ist aus</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
-                        Aktiviere den Expertenmodus in den Einstellungen, um Bilder fuer Trainingsdaten zu sammeln.
+                        Aktiviere den Expertenmodus in den Einstellungen, um Bilder für Trainingsdaten zu sammeln.
                     </MudText>
                     <MudButton Href="settings" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="collection-primary-button">
-                        Einstellungen oeffnen
+                        Einstellungen öffnen
                     </MudButton>
                 </MudStack>
             </MudPaper>
@@ -52,7 +52,7 @@
 
                 @if (_livePreview)
                 {
-                    <div class="collection-stage-badge">Hand ruhig halten. Muenze sichtbar platzieren.</div>
+                    <div class="collection-stage-badge">Hand ruhig halten. Münze sichtbar platzieren.</div>
                 }
             </MudPaper>
 
@@ -89,7 +89,7 @@
                 @* Notiz + Speichern + Verwerfen *@
                 <MudPaper Elevation="0" Class="collection-panel">
                     <MudStack Spacing="3">
-                        <MudTextField @bind-Value="_notes" Label="Notiz optional" Lines="2" Variant="Variant.Outlined" Placeholder="z. B. Silberdollar, Buehnenlicht, Sharpie sichtbar" Disabled="@(!_hasImage)" />
+                        <MudTextField @bind-Value="_notes" Label="Notiz optional" Lines="2" Variant="Variant.Outlined" Placeholder="z. B. Silberdollar, Bühnenlicht, Sharpie sichtbar" Disabled="@(!_hasImage)" />
 
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveImageAsync" Disabled="@(!_hasImage || _isBusy)" FullWidth="true" StartIcon="@Icons.Material.Filled.Save" Class="collection-primary-button">
                             Bild speichern
@@ -102,7 +102,7 @@
             }
             else
             {
-                @* Anzeige-Modus fuer gespeichertes Bild *@
+                @* Anzeige-Modus für gespeichertes Bild *@
                 <MudPaper Elevation="0" Class="collection-panel">
                     <MudStack Spacing="3">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnBackToCapture" FullWidth="true" StartIcon="@Icons.Material.Filled.Camera" Class="collection-primary-button">
@@ -248,7 +248,7 @@
         }
         catch (Exception ex) when (ex is IOException or ArgumentException)
         {
-            Snackbar.Add($"Datei ungueltig oder zu gross: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Datei ungültig oder zu groß: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -416,7 +416,7 @@
         var msg = ex.Message;
         if (msg.Contains("NotAllowed"))
         {
-            msg = "Kamerazugriff verweigert. Bitte Berechtigung pruefen.";
+            msg = "Kamerazugriff verweigert. Bitte Berechtigung prüfen.";
         }
         else if (msg.Contains("NotFound"))
         {

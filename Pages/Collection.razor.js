@@ -122,7 +122,7 @@ async function loadJsZip() {
         await import(new URL('vendor/jszip/jszip.min.js', document.baseURI).toString());
     }
     if (!window.JSZip) {
-        throw new Error('JSZip wurde nicht gefunden. Bitte npm install ausfuehren.');
+        throw new Error('JSZip wurde nicht gefunden. Bitte npm install ausführen.');
     }
     return window.JSZip;
 }

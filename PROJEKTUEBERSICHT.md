@@ -9,8 +9,8 @@
 - **Kamera-Workflow** vollständig: Rückkamera (`getUserMedia`), Foto aufnehmen (PNG), Upload (PNG/JPEG, max 10 MB), Vorschau, Speichern (Download), Löschen.
 - **Bildbereitstellung** über `ImageStateService`: hält Originalbild und optional ein freigestelltes Münzbild im Speicher.
 - **Münzerkennung / Scan-Logik**: Browserseitige ONNX-Pipeline mit lokalem Heuristik-Fallback erzeugt ein eng zugeschnittenes PNG mit transparentem Hintergrund.
-- **Bildersammlung** vorbereitet: Expertenmodus mit Rohbildsammlung, IndexedDB-Speicherung und ZIP-Export fuer den separaten Desktop-Trainer. Der Desktop-Trainer ist mittlerweile vollstaendig implementiert (CLI, ML-Pipeline, PySide6-GUI) und kann das Raw-ZIP importieren, annotieren, trainieren und ONNX exportieren; siehe `trainer/README.md`.
-- **Trainer** vollstaendig umgesetzt: Python-3.12-Paket `mcs_trainer` mit CLI, ML-Pipeline und PySide6-GUI. Die GUI fuehrt den Workflow bis zur PWA-Uebernahme aus und installiert Modelle unter `wwwroot/models/<model-id>/`.
+- **Bildersammlung** vorbereitet: Expertenmodus mit Rohbildsammlung, IndexedDB-Speicherung und ZIP-Export für den separaten Desktop-Trainer. Der Desktop-Trainer ist mittlerweile vollständig implementiert (CLI, ML-Pipeline, PySide6-GUI) und kann das Raw-ZIP importieren, annotieren, trainieren und ONNX exportieren; siehe `trainer/README.md`.
+- **Trainer** vollständig umgesetzt: Python-3.12-Paket `mcs_trainer` mit CLI, ML-Pipeline und PySide6-GUI. Die GUI führt den Workflow bis zur PWA-Übernahme aus und installiert Modelle unter `wwwroot/models/<model-id>/`.
 - **Settings**: Expertenmodus und Scan-Modell-Auswahl aus `wwwroot/models/manifest.json`; Legacy-Fallback auf `wwwroot/models/coin-segmentation.onnx`.
 - Build: `dotnet build` kompiliert fehlerfrei, 0 Fehler, 0 Warnungen.
 
@@ -35,19 +35,19 @@ flowchart TD
     A["Kamera / Upload\nCamera.razor"]
     B["Rohbilder sammeln\nCollection.razor (Expertenmodus)"]
     C["Raw-ZIP-Export\nJSZip + IndexedDB"]
-    D["Scan ausfuehren\nONNX-Pipeline + Heuristik-Fallback"]
-    E["Einstellungen\nScan-Modell auswaehlen\nSettings.razor"]
+    D["Scan ausführen\nONNX-Pipeline + Heuristik-Fallback"]
+    E["Einstellungen\nScan-Modell auswählen\nSettings.razor"]
   end
 
   subgraph Trainer["Trainer auf Desktop (Python / PySide6)"]
     F["Raw-ZIP importieren\nmcs-trainer import-raw"]
-    G["Muenze markieren\nMaskEditor (Pinsel/Ellipse)"]
-    H["Daten pruefen & aufteilen\nvalidate + split 80/10/10"]
+    G["Münze markieren\nMaskEditor (Pinsel/Ellipse)"]
+    H["Daten prüfen & aufteilen\nvalidate + split 80/10/10"]
     I["Modell trainieren\nU-Net, PyTorch\nmcs-trainer train"]
     J["Modell testen\nmcs-trainer evaluate"]
     K["ONNX exportieren\nmcs-trainer export-onnx"]
     L["Modellpaket erstellen\nmcs-trainer package-model"]
-    M["Modell in PWA uebernehmen\nGUI installiert nach\nwwwroot/models/&lt;model-id&gt;/"]
+    M["Modell in PWA übernehmen\nGUI installiert nach\nwwwroot/models/&lt;model-id&gt;/"]
   end
 
   subgraph Store["Modellverwaltung"]
@@ -132,7 +132,7 @@ npm install                               # JS-Abhaengigkeiten installieren und 
 - **`service-worker-assets.js`** wird beim Publish generiert, nicht manuell editieren.
 - **Nicht committen:** `.vs/`, `bin/`, `obj/`, `MagicCoinSnapper.csproj.user`.
 - **UI-Änderungen** müssen `DESIGN.md` folgen.
-- **Modelle** werden ueber `wwwroot/models/manifest.json` (`schemaVersion = mcs-model-index-v1`) angeboten. Ohne Manifest bleibt `wwwroot/models/coin-segmentation.onnx` als Legacy-Fallback aktiv.
+- **Modelle** werden über `wwwroot/models/manifest.json` (`schemaVersion = mcs-model-index-v1`) angeboten. Ohne Manifest bleibt `wwwroot/models/coin-segmentation.onnx` als Legacy-Fallback aktiv.
 
 ## Referenzen
 
