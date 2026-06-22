@@ -4,3 +4,12 @@ obj
 graphify-out
 node_modules
 npm-debug.log*
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+dist/
+build/

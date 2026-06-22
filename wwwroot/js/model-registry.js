@@ -4,6 +4,7 @@ const SCHEMA = 'mcs-model-index-v1';
 const MANIFEST_PATH = 'models/manifest.json';
 const LEGACY_MODEL_PATH = 'models/coin-segmentation.onnx';
 const LEGACY_MODEL_ID = 'legacy-coin-segmentation';
+const SUPPORTED_CONTRACT = 'mcs-segmentation-512-letterbox-v1';
 
 let modelIndexPromise = null;
 
@@ -68,17 +69,7 @@ async function createLegacyIndex() {
         return { schemaVersion: SCHEMA, defaultModelId: null, models: [] };
     }
 
-    return {
-        schemaVersion: SCHEMA,
-        defaultModelId: LEGACY_MODEL_ID,
-        models: [normalizeModel({
-            id: LEGACY_MODEL_ID,
-            displayName: 'Legacy-ONNX-Modell',
-            description: 'Gebündeltes Standardmodell für die Münzsegmentierung.',
-            modelUrl: LEGACY_MODEL_PATH,
-            output: { threshold: 0.5 }
-        }, document.baseURI)]
-    };
+    return { schemaVersion: SCHEMA, defaultModelId: null, models: [] };
 }
 
 function normalizeModel(model, baseUrl) {
@@ -91,16 +82,27 @@ function normalizeModel(model, baseUrl) {
         return null;
     }
 
+    const contract = typeof model.contract === 'string' ? model.contract.trim() : '';
+    if (contract !== SUPPORTED_CONTRACT) {
+        return null;
+    }
+
     const threshold = Number(model.output?.threshold);
+    const output = model.output && typeof model.output === 'object' ? { ...model.output } : {};
+    if (Number.isFinite(threshold)) {
+        output.threshold = threshold;
+    }
 
     return {
         id,
         displayName: typeof model.displayName === 'string' && model.displayName.trim() ? model.displayName.trim() : id,
         description: typeof model.description === 'string' ? model.description.trim() : '',
         version: typeof model.version === 'string' ? model.version.trim() : '',
+        contract,
+        input: model.input && typeof model.input === 'object' ? { ...model.input } : {},
         path,
         url: resolveModelUrl(path, baseUrl),
-        output: Number.isFinite(threshold) ? { threshold } : {}
+        output
     };
 }
 

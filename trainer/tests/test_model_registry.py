@@ -38,7 +38,7 @@ def test_install_model_creates_manifest_and_model_files(tmp_path: Path) -> None:
     model_json = json.loads(
         (wwwroot / "models" / "my-model" / "model.json").read_text(encoding="utf-8")
     )
-    assert model_json["contract"] == "mcs-segmentation-512-v1"
+    assert model_json["contract"] == "mcs-segmentation-512-letterbox-v1"
     assert model_json["input"]["shape"] == [1, 3, 512, 512]
     assert model_json["output"]["shape"] == [1, 1, 512, 512]
 

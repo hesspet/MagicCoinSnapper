@@ -14,6 +14,11 @@ from mcs_trainer.dataset.schemas import (
 )
 
 
+_MASK_ANALYSIS_MAX_SIDE = 512
+_SMALL_MASK_COVERAGE = 0.002
+_LARGE_MASK_COVERAGE = 0.9
+
+
 @dataclass
 class ValidationResult:
     errors: list[str] = field(default_factory=list)
@@ -29,6 +34,92 @@ def _read_metadata(dataset_dir: Path) -> dict:
     if not meta_path.exists():
         raise FileNotFoundError(f"metadata.json fehlt: {meta_path}")
     return json.loads(meta_path.read_text(encoding="utf-8"))
+
+
+def _analysis_mask(mask: Image.Image) -> Image.Image:
+    w, h = mask.size
+    scale = min(1.0, _MASK_ANALYSIS_MAX_SIDE / max(w, h))
+    if scale < 1.0:
+        size = (max(1, round(w * scale)), max(1, round(h * scale)))
+        mask = mask.resize(size, Image.Resampling.NEAREST)
+    return mask.point(lambda v: 255 if v >= 128 else 0).convert("L")
+
+
+def _component_stats(mask: Image.Image, value: int) -> tuple[int, int, int]:
+    w, h = mask.size
+    data = bytes(mask.getdata())
+    visited = bytearray(w * h)
+    components = 0
+    largest = 0
+    enclosed = 0
+
+    for start, pixel in enumerate(data):
+        if visited[start] or pixel != value:
+            continue
+        components += 1
+        size = 0
+        touches_border = False
+        stack = [start]
+        visited[start] = 1
+        while stack:
+            idx = stack.pop()
+            size += 1
+            x = idx % w
+            y = idx // w
+            if x == 0 or y == 0 or x == w - 1 or y == h - 1:
+                touches_border = True
+            if x > 0:
+                nidx = idx - 1
+                if not visited[nidx] and data[nidx] == value:
+                    visited[nidx] = 1
+                    stack.append(nidx)
+            if x < w - 1:
+                nidx = idx + 1
+                if not visited[nidx] and data[nidx] == value:
+                    visited[nidx] = 1
+                    stack.append(nidx)
+            if y > 0:
+                nidx = idx - w
+                if not visited[nidx] and data[nidx] == value:
+                    visited[nidx] = 1
+                    stack.append(nidx)
+            if y < h - 1:
+                nidx = idx + w
+                if not visited[nidx] and data[nidx] == value:
+                    visited[nidx] = 1
+                    stack.append(nidx)
+        largest = max(largest, size)
+        if not touches_border:
+            enclosed += 1
+
+    return components, largest, enclosed
+
+
+def _warn_mask_geometry(
+    result: ValidationResult, sample_id: str, mask: Image.Image
+) -> None:
+    w, h = mask.size
+    if (
+        mask.crop((0, 0, w, 1)).getextrema()[1] > 0
+        or mask.crop((0, h - 1, w, h)).getextrema()[1] > 0
+        or mask.crop((0, 0, 1, h)).getextrema()[1] > 0
+        or mask.crop((w - 1, 0, w, h)).getextrema()[1] > 0
+    ):
+        result.warnings.append(f"Maske berührt Bildrand ({sample_id})")
+
+    analysis = _analysis_mask(mask)
+    fg_components, largest_fg, _ = _component_stats(analysis, 255)
+    fg_pixels = sum(1 for pixel in analysis.getdata() if pixel == 255)
+    if fg_components > 4 or (
+        fg_components > 1 and fg_pixels > 0 and largest_fg / fg_pixels < 0.95
+    ):
+        result.warnings.append(
+            f"Maske wirkt fragmentiert ({sample_id}): komponenten={fg_components}"
+        )
+
+    _, _, holes = _component_stats(analysis, 0)
+    if holes > 0:
+        result.warnings.append(f"Maske enthält mögliche Löcher ({sample_id}): {holes}")
 
 
 def validate_raw(dataset_dir: Path) -> ValidationResult:
@@ -168,17 +259,29 @@ def validate_annotated(dataset_dir: Path) -> ValidationResult:
                     )
                 mw, mh = mask.size
                 if mask.mode == "L":
-                    extrema = mask.getextrema()
-                    if extrema[0] < 0 or extrema[1] > 255:
+                    hist = mask.histogram()
+                    mid_values = sum(hist[1:255])
+                    fg_pixels = hist[255]
+                    total_pixels = mw * mh
+                    if mid_values:
                         result.errors.append(
-                            f"Maskenwerte ausserhalb 0-255 ({sample.id}): {extrema}"
+                            f"Maskenwerte nicht in {{0,255}} ({sample.id})"
                         )
-                    elif extrema[1] > 0 and (
-                        extrema[0] not in (0, 255) or extrema[1] not in (0, 255)
-                    ):
-                        result.errors.append(
-                            f"Maskenwerte nicht in {{0,255}} ({sample.id}): {extrema}"
-                        )
+                    if fg_pixels == 0 and mid_values == 0:
+                        result.errors.append(f"Maske leer ({sample.id})")
+                    if fg_pixels > 0:
+                        coverage = fg_pixels / total_pixels
+                        if coverage < _SMALL_MASK_COVERAGE:
+                            result.warnings.append(
+                                f"Masken-Coverage sehr klein ({sample.id}): "
+                                f"{coverage:.4%}"
+                            )
+                        if coverage > _LARGE_MASK_COVERAGE:
+                            result.warnings.append(
+                                f"Masken-Coverage sehr groß ({sample.id}): "
+                                f"{coverage:.2%}"
+                            )
+                        _warn_mask_geometry(result, sample.id, mask)
         except Exception as exc:
             result.errors.append(f"Maske nicht lesbar ({sample.id}): {exc}")
             continue

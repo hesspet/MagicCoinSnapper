@@ -12,7 +12,7 @@ from mcs_trainer.utils.paths import slugify_dataset_id
 
 
 MODEL_INDEX_SCHEMA_VERSION = "mcs-model-index-v1"
-MODEL_CONTRACT = "mcs-segmentation-512-v1"
+MODEL_CONTRACT = "mcs-segmentation-512-letterbox-v1"
 MODEL_FILENAME = "coin-segmentation.onnx"
 MODEL_METADATA_FILENAME = "model.json"
 
@@ -25,6 +25,15 @@ DEFAULT_INPUT_CONTRACT = {
     "colorOrder": "RGB",
     "normalization": "/255",
     "range": [0.0, 1.0],
+    "preprocessing": {
+        "resize": {
+            "mode": "letterbox",
+            "longestMaxSize": 512,
+            "padTo": [512, 512],
+            "padValue": 0,
+            "maskPadValue": 0,
+        }
+    },
 }
 DEFAULT_OUTPUT_CONTRACT = {
     "name": "mask",

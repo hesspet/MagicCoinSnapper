@@ -17,6 +17,12 @@ def dice_score(
     return ((2.0 * inter + eps) / (denom + eps)).mean()
 
 
+def dice_loss(pred: torch.Tensor, target: torch.Tensor, eps: float = 1e-7) -> torch.Tensor:
+    inter = (pred * target).sum(dim=(1, 2, 3))
+    denom = pred.sum(dim=(1, 2, 3)) + target.sum(dim=(1, 2, 3))
+    return 1.0 - ((2.0 * inter + eps) / (denom + eps)).mean()
+
+
 def iou_score(
     pred: torch.Tensor, target: torch.Tensor, threshold: float = 0.5, eps: float = 1e-7
 ) -> torch.Tensor:

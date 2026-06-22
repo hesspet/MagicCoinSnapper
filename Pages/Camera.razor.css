@@ -99,6 +99,17 @@
     border-radius: var(--mcs-radius-md);
 }
 
+.camera-quality-issue {
+    display: flex;
+    align-items: center;
+    gap: var(--mcs-space-2);
+    padding: var(--mcs-space-3) var(--mcs-space-4);
+    color: var(--mcs-gold-strong);
+    background: var(--mcs-surface);
+    border: 1px solid var(--mcs-gold-border-strong);
+    border-radius: var(--mcs-radius-md);
+}
+
 .camera-debug-panel {
     padding: var(--mcs-space-4);
     background: var(--mcs-surface);

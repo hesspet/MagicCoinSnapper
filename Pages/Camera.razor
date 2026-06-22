@@ -47,6 +47,14 @@
         }
     </MudPaper>
 
+    @if (_visibleQualityIssue is not null)
+    {
+        <div class="camera-quality-issue" role="alert">
+            <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Size="Size.Small" />
+            <MudText Typo="Typo.body2">@_visibleQualityIssue.Message</MudText>
+        </div>
+    }
+
     <MudPaper Elevation="0" Class="camera-actions">
         @if (_livePreview)
         {
@@ -159,6 +167,7 @@
     private string? _maskPreviewUrl;
     private string? _scanStatus;
     private string? _activeModelStatus;
+    private ScanQualityIssue? _visibleQualityIssue;
     private CoinExtractionDebugInfo? _scanDebugInfo;
     private IBrowserFile? _uploadedFile;
     private IJSObjectReference? _module;
@@ -253,6 +262,7 @@
         _maskPreviewUrl = null;
         _scanDebugInfo = null;
         _scanStatus = null;
+        _visibleQualityIssue = null;
         ImageState.SetImage(bytes, contentType, source);
     }
 
@@ -285,6 +295,7 @@
         _maskPreviewUrl = null;
         _scanDebugInfo = null;
         _scanStatus = null;
+        _visibleQualityIssue = null;
         _hasImage = false;
         _hasCoinImage = false;
         _uploadedFile = null;
@@ -297,6 +308,7 @@
 
         _isBusy = true;
         _scanStatus = "Scan läuft";
+        _visibleQualityIssue = null;
         try
         {
             var result = await _module.InvokeAsync<CoinExtractionResult>("extractCoin", _previewUrl, _scanDebugMode);
@@ -305,6 +317,7 @@
             _hasCoinImage = true;
             _scanDebugInfo = _scanDebugMode ? result.Debug : null;
             _maskPreviewUrl = _scanDebugInfo?.MaskPreviewDataUrl;
+            _visibleQualityIssue = GetVisibleQualityIssue(result.QualityIssues);
             _scanStatus = result.UsedOnnx && !string.IsNullOrWhiteSpace(result.ModelDisplayName) ? $"Münze erkannt: {result.ModelDisplayName}" : result.UsedOnnx ? "Münze erkannt" : "Heuristik-Ergebnis";
             ImageState.SetExtractedImage(bytes, "image/png");
             Snackbar.Add(result.Message ?? "Münze freigestellt.", result.UsedOnnx ? Severity.Success : Severity.Info);
@@ -346,6 +359,23 @@
         return value is double number ? $"{(number * 100).ToString("0.0")} %" : "-";
     }
 
+    private static ScanQualityIssue? GetVisibleQualityIssue(ScanQualityIssue[]? qualityIssues)
+    {
+        if (qualityIssues is null) return null;
+
+        foreach (var issue in qualityIssues)
+        {
+            if (string.IsNullOrWhiteSpace(issue.Message)) continue;
+            if (string.Equals(issue.Severity, "Warning", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(issue.Severity, "Error", StringComparison.OrdinalIgnoreCase))
+            {
+                return issue;
+            }
+        }
+
+        return null;
+    }
+
     private void ShowCameraError(JSException ex)
     {
         var msg = ex.Message;
@@ -379,7 +409,9 @@
         }
     }
 
-    private sealed record CoinExtractionResult(string DataUrl, bool UsedOnnx, double Confidence, int Width, int Height, string? Message, string? ModelDisplayName, CoinExtractionDebugInfo? Debug);
+    private sealed record CoinExtractionResult(string DataUrl, bool UsedOnnx, double Confidence, int Width, int Height, string? Message, string? ModelDisplayName, CoinExtractionDebugInfo? Debug, ScanQualityIssue[]? QualityIssues);
+
+    private sealed record ScanQualityIssue(string Code, string Severity, string Message);
 
     private sealed record CoinExtractionDebugInfo(
         bool UsedOnnx,

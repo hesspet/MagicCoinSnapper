@@ -72,8 +72,9 @@ trainer/
   docs/
     gui.md
     model-management.md
+    training-faq.md
   src/mcs_trainer/
-    __init__.py            (__version__ = "0.1.0")
+    __init__.py            (__version__ = "0.6.0")
     __main__.py
     utils/
       paths.py             (safe_join, resolve_dataset_dir, ensure_subdirs, slugify_dataset_id)
@@ -87,9 +88,9 @@ trainer/
       main.py              (typer app, 8 Befehle, lazy ML/GUI imports)
     ml/
       model.py             (build_model -> U-Net, base=32, sigmoid output)
-      augmentations.py     (get_train/val_transforms, direct-stretch 512x512)
+      augmentations.py     (get_train/val_transforms, letterbox 512x512)
       dataset.py           (CoinSegDataset)
-      metrics.py           (dice_score, iou_score)
+      metrics.py           (dice_score, dice_loss, iou_score)
       train_loop.py        (TrainConfig, train(), evaluate(), Checkpoints, metrics.json/run.json/eval.json)
       onnx_export.py       (export_onnx, validate_onnx; feste Shapes, onnxsim)
       package_model.py     (package_model: zip mit onnx/model.json/metrics.json/preprocessing.json/README/SHA256SUMS)

@@ -23,7 +23,7 @@ runner = CliRunner()
 def test_cli_version() -> None:
     res = runner.invoke(app, ["--version"])
     assert res.exit_code == 0
-    assert "0.4.0" in res.stdout
+    assert "0.6.0" in res.stdout
 
 
 def test_train_cuda_fails_early_when_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:

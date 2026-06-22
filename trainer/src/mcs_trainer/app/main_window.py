@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QStatusBar,
     QToolBar,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -231,8 +232,8 @@ class MainWindow(QMainWindow):
         self._train_dock.setWidget(self._train_log)
         self._train_dock.setObjectName("TrainLogDock")
 
-        self._build_layout()
         self._build_actions()
+        self._build_layout()
         self._build_shortcuts()
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self._train_dock)
         self._train_dock.setVisible(False)
@@ -265,6 +266,16 @@ class MainWindow(QMainWindow):
         ellipse_discard = QPushButton("Rahmen verwerfen")
         ellipse_discard.clicked.connect(self._viewer.clear_ellipse_frame)
         rl.addWidget(ellipse_discard)
+        mask_actions = QHBoxLayout()
+        clear_mask = QToolButton()
+        clear_mask.setDefaultAction(self._act_clear_mask)
+        clear_mask.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        next_sample = QToolButton()
+        next_sample.setDefaultAction(self._act_next)
+        next_sample.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        mask_actions.addWidget(clear_mask)
+        mask_actions.addWidget(next_sample)
+        rl.addLayout(mask_actions)
         rh = QHBoxLayout()
         rh.addWidget(QLabel("Radius"))
         rh.addWidget(self._radius_slider, stretch=1)
@@ -303,15 +314,11 @@ class MainWindow(QMainWindow):
         self._act_export.triggered.connect(self._do_export_zip)
         tb.addAction(self._act_export)
 
-        tb.addSeparator()
-
-        self._act_clear_mask = QAction("Maske leeren", self)
+        self._act_clear_mask = QAction("Maske loeschen", self)
         self._act_clear_mask.triggered.connect(self._clear_mask)
-        tb.addAction(self._act_clear_mask)
 
         self._act_next = QAction("Weiter", self)
         self._act_next.triggered.connect(self._next_sample)
-        tb.addAction(self._act_next)
 
         tb.addSeparator()
 

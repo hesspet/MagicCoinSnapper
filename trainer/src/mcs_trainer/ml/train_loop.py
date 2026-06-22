@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 from mcs_trainer.dataset.annotated_dataset import load_annotated
 from mcs_trainer.ml.dataset import CoinSegDataset
-from mcs_trainer.ml.metrics import dice_score, iou_score
+from mcs_trainer.ml.metrics import dice_loss, dice_score, iou_score
 from mcs_trainer.ml.model import build_model
 from mcs_trainer.ml.progress import format_train_progress
 
@@ -80,6 +80,12 @@ def _seed_everything(seed: int, device: torch.device) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
+def _hybrid_loss(
+    pred: torch.Tensor, target: torch.Tensor, bce: torch.nn.Module
+) -> torch.Tensor:
+    return bce(pred, target) + dice_loss(pred, target)
+
+
 def train(
     dataset_dir: Path,
     profile: str,
@@ -134,7 +140,7 @@ def train(
             masks = masks.to(dev)
             optimizer.zero_grad()
             preds = model(imgs)
-            loss = criterion(preds, masks)
+            loss = _hybrid_loss(preds, masks, criterion)
             loss.backward()
             optimizer.step()
             train_loss_sum += float(loss.item())
@@ -155,7 +161,7 @@ def train(
                     imgs = imgs.to(dev)
                     masks = masks.to(dev)
                     preds = model(imgs)
-                    val_loss_sum += float(criterion(preds, masks).item())
+                    val_loss_sum += float(_hybrid_loss(preds, masks, criterion).item())
                     dice_sum += float(dice_score(preds, masks).item())
                     iou_sum += float(iou_score(preds, masks).item())
                     n_val += 1
@@ -260,7 +266,7 @@ def evaluate(run_dir: Path, dataset_dir: Path, device: str) -> EvalResult:
             imgs = imgs.to(dev)
             masks = masks.to(dev)
             preds = model(imgs)
-            loss_sum += float(criterion(preds, masks).item())
+            loss_sum += float(_hybrid_loss(preds, masks, criterion).item())
             dice_sum += float(dice_score(preds, masks).item())
             iou_sum += float(iou_score(preds, masks).item())
             n += 1

@@ -47,6 +47,8 @@ mcs-trainer gui
 
 In der GUI: Raw-ZIP importieren, Masken zeichnen, **Daten pruefen**, **Daten aufteilen**, **Training starten**, **Modell testen**, **ONNX exportieren**, **Modellpaket erstellen** und **Modell in PWA uebernehmen**.
 
+Eine ausfuehrliche Anwender-FAQ zu Bildmengen, Bildqualitaet, Maskierung, mehreren Helfer-ZIPs, Modellfeldern und Modell-Loeschung steht in `docs/training-faq.md`.
+
 CLI-Minimalfolge vom PWA-Export bis zum fertigen Split:
 
 1. PWA-Raw-ZIP in `trainer/data/incoming/` ablegen.
@@ -197,8 +199,8 @@ mcs-trainer train --dataset .\data\annotated\coins-v1 --profile general --epochs
 ```
 
 Verhalten:
-- Preprocessing exakt wie die PWA: direktes Resize auf 512x512 (Stretch, kein Letterboxing), RGB, Normalisierung auf `0..1`. Maske `{0,255}` -> `{0.0,1.0}`.
-- Verlust: BCEWithLogits; Optimizer: Adam; Metriken: Dice/IoU (Threshold 0.5).
+- Preprocessing exakt wie die PWA: Letterbox via LongestMaxSize 512 und Padding auf 512x512, RGB, Normalisierung auf `0..1`. Maske `{0,255}` -> `{0.0,1.0}`.
+- Verlust: BCE+Dice auf Sigmoid-Wahrscheinlichkeiten; Optimizer: Adam; Metriken: Dice/IoU (Threshold 0.5).
 - Speichert `checkpoints/best.pt` (nach Val-Dice) und `checkpoints/last.pt`.
 - Schreibt `metrics.json` (pro Epoche) und `run.json` (Config + Best-Metriken).
 - Run-Verzeichnis wird automatisch durchnummeriert: `<out-dir>/<profile>-NNN`.
@@ -274,7 +276,7 @@ mcs-model-<profile>-<version>.zip
   SHA256SUMS.txt
 ```
 
-`preprocessing.json` dokumentiert den PWA-Vertrag (Resize 512x512 Stretch, RGB, `/255`, Threshold 0.5).
+`preprocessing.json` dokumentiert den PWA-Vertrag (Letterbox 512x512, RGB, `/255`, Threshold 0.5).
 
 ### gui
 

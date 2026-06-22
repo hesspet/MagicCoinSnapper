@@ -61,7 +61,15 @@ def package_model(
         shutil.copy2(metrics_src, staging / "metrics.json")
 
     preprocessing = {
-        "resize": {"target": [512, 512], "mode": "direct-stretch", "letterbox": False},
+        "resize": {
+            "target": [512, 512],
+            "mode": "letterbox",
+            "longestMaxSize": 512,
+            "padTo": [512, 512],
+            "letterbox": True,
+            "padValue": 0,
+            "maskPadValue": 0,
+        },
         "colorOrder": "RGB",
         "normalization": {"method": "divide", "value": 255.0, "range": [0.0, 1.0]},
         "maskThreshold": 0.5,
@@ -78,7 +86,8 @@ ONNX-Modell fuer Muenz-Segmentierung (MagicCoinSnapper PWA).
 - Input: float32[1,3,512,512], RGB, 0..1 (Teilung durch 255).
 - Output: float32[1,1,512,512], Wahrscheinlichkeit 0..1.
 - Threshold: 0.5.
-- Resize: direkt auf 512x512 (kein Letterboxing).
+- Resize: Letterbox mit LongestMaxSize 512 und Padding auf 512x512.
+- Padding: Bild 0 (schwarz), Maske 0.
 """
     (staging / "README.md").write_text(readme, encoding="utf-8")
 

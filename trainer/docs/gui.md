@@ -2,6 +2,8 @@
 
 Die PySide6-GUI fuehrt den Trainer-Workflow von der Raw-ZIP bis zum PWA-Modell.
 
+Fuer praxisorientierte Hinweise zu Bildmengen, Aufnahmequalitaet, Maskierung, mehreren Helfer-ZIPs und Modellfeldern siehe `trainer/docs/training-faq.md`.
+
 ## Start
 
 ```pwsh
