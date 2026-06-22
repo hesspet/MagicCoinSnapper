@@ -4,10 +4,10 @@
   "models": [
     {
       "id": "coin-segmentation-poker",
-      "displayName": "Coin Segmentation",
-      "description": "Segmentierungsmodell fuer MagicCoinSnapper",
+      "displayName": "Pokerchip 2206",
+      "description": "Segmentierungsmodell für Pokerchip",
       "objectType": "coin",
-      "currency": "unknown",
+      "currency": "Poker",
       "useCase": "segmentation",
       "profile": "poker",
       "version": "0.7.0",
