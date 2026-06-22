@@ -1,0 +1,18 @@
+# Graphify exclusion rules (gitignore syntax, last-match-wins over .gitignore)
+wwwroot/models/
+/.vs
+bin
+obj
+graphify-out
+node_modules
+npm-debug.log*
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+*.egg-info/
+dist/
+build/
+

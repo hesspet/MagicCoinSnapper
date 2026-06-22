@@ -227,6 +227,8 @@ def validate_annotated(dataset_dir: Path) -> ValidationResult:
             )
 
     for sample in metadata.samples:
+        if sample.excluded:
+            continue
         img_path = dataset_dir / sample.image
         if not img_path.exists():
             result.errors.append(f"Bild fehlt ({sample.id}): {sample.image}")
@@ -258,30 +260,30 @@ def validate_annotated(dataset_dir: Path) -> ValidationResult:
                         f"Maske nicht 8-bit Graustufen ({sample.id}): mode={mask.mode}"
                     )
                 mw, mh = mask.size
-                if mask.mode == "L":
-                    hist = mask.histogram()
-                    mid_values = sum(hist[1:255])
-                    fg_pixels = hist[255]
-                    total_pixels = mw * mh
-                    if mid_values:
-                        result.errors.append(
-                            f"Maskenwerte nicht in {{0,255}} ({sample.id})"
+                mask_l = mask.convert("L")
+                hist = mask_l.histogram()
+                mid_values = sum(hist[1:255])
+                fg_pixels = hist[255]
+                total_pixels = mw * mh
+                if mid_values:
+                    result.errors.append(
+                        f"Maskenwerte nicht in {{0,255}} ({sample.id})"
+                    )
+                if fg_pixels == 0 and mid_values == 0:
+                    result.errors.append(f"Maske leer ({sample.id})")
+                if fg_pixels > 0:
+                    coverage = fg_pixels / total_pixels
+                    if coverage < _SMALL_MASK_COVERAGE:
+                        result.warnings.append(
+                            f"Masken-Coverage sehr klein ({sample.id}): "
+                            f"{coverage:.4%}"
                         )
-                    if fg_pixels == 0 and mid_values == 0:
-                        result.errors.append(f"Maske leer ({sample.id})")
-                    if fg_pixels > 0:
-                        coverage = fg_pixels / total_pixels
-                        if coverage < _SMALL_MASK_COVERAGE:
-                            result.warnings.append(
-                                f"Masken-Coverage sehr klein ({sample.id}): "
-                                f"{coverage:.4%}"
-                            )
-                        if coverage > _LARGE_MASK_COVERAGE:
-                            result.warnings.append(
-                                f"Masken-Coverage sehr groß ({sample.id}): "
-                                f"{coverage:.2%}"
-                            )
-                        _warn_mask_geometry(result, sample.id, mask)
+                    if coverage > _LARGE_MASK_COVERAGE:
+                        result.warnings.append(
+                            f"Masken-Coverage sehr groß ({sample.id}): "
+                            f"{coverage:.2%}"
+                        )
+                    _warn_mask_geometry(result, sample.id, mask_l)
         except Exception as exc:
             result.errors.append(f"Maske nicht lesbar ({sample.id}): {exc}")
             continue

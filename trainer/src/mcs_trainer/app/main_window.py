@@ -13,6 +13,7 @@ from PySide6.QtCore import QProcess, QProcessEnvironment, Qt
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
@@ -34,6 +35,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QSplitter,
     QStatusBar,
+    QStyle,
     QToolBar,
     QToolButton,
     QVBoxLayout,
@@ -188,6 +190,15 @@ class MainWindow(QMainWindow):
         self._training_active = False
         self._train_output_buffer = ""
 
+        self._filter_no_mask = QCheckBox("Nur Bilder ohne Maske")
+        self._filter_no_mask.stateChanged.connect(self._rebuild_list)
+        self._filter_refresh_btn = QToolButton()
+        self._filter_refresh_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload)
+        )
+        self._filter_refresh_btn.setToolTip("Aktualisieren")
+        self._filter_refresh_btn.clicked.connect(self._rebuild_list)
+
         self._editor = MaskEditor()
         self._viewer = ImageViewer(self._editor)
         self._viewer.maskEdited.connect(self._on_mask_edited)
@@ -243,7 +254,12 @@ class MainWindow(QMainWindow):
         left = QWidget()
         ll = QVBoxLayout(left)
         ll.setContentsMargins(4, 4, 4, 4)
-        ll.addWidget(QLabel("Bilder"))
+        header_row = QHBoxLayout()
+        header_row.addWidget(QLabel("Bilder"))
+        header_row.addWidget(self._filter_no_mask)
+        header_row.addWidget(self._filter_refresh_btn)
+        header_row.addStretch(1)
+        ll.addLayout(header_row)
         ll.addWidget(self._image_list, stretch=1)
 
         right = QWidget()
@@ -401,13 +417,46 @@ class MainWindow(QMainWindow):
             f"{'ungespeichert' if self._dirty else 'gespeichert'}"
         )
 
+    def _sample_has_no_mask(self, sample: AnnotatedSample) -> bool:
+        if self._dataset_dir is None:
+            return False
+        mask_path = self._dataset_dir / sample.mask
+        if not mask_path.exists():
+            return True
+        try:
+            with Image.open(mask_path) as mask_img:
+                mask_img = mask_img.convert("L")
+                data = mask_img.getdata()
+                return all(v == 0 for v in data)
+        except Exception:
+            return True
+
     def _rebuild_list(self) -> None:
         self._image_list.blockSignals(True)
+        current_id: Optional[str] = None
+        row = self._image_list.currentRow()
+        if row >= 0:
+            item = self._image_list.item(row)
+            if item is not None:
+                current_id = item.text()
         self._image_list.clear()
         if self._metadata is not None:
             for s in self._metadata.samples:
+                if s.excluded:
+                    continue
+                if self._filter_no_mask.isChecked() and not self._sample_has_no_mask(s):
+                    continue
                 self._image_list.addItem(QListWidgetItem(s.id))
+        new_row = -1
+        if current_id is not None:
+            for i in range(self._image_list.count()):
+                if self._image_list.item(i).text() == current_id:
+                    new_row = i
+                    break
+        self._image_list.setCurrentRow(new_row)
         self._image_list.blockSignals(False)
+        if new_row == -1:
+            self._on_sample_selected(-1)
 
     def _set_dirty(self, dirty: bool) -> None:
         self._dirty = dirty
@@ -569,14 +618,28 @@ class MainWindow(QMainWindow):
         if self._metadata is None:
             return
         self._persist_current_to_cache()
-        total = len(self._metadata.samples)
-        if row < 0 or row >= total:
+        if row < 0 or row >= self._image_list.count():
             self._index = -1
             self._metadata_panel.clear_panel()
             self._refresh_state()
             return
-        self._index = row
-        sample = self._metadata.samples[row]
+        item = self._image_list.item(row)
+        if item is None:
+            self._index = -1
+            self._metadata_panel.clear_panel()
+            self._refresh_state()
+            return
+        sample_id = item.text()
+        for i, s in enumerate(self._metadata.samples):
+            if s.id == sample_id:
+                self._index = i
+                break
+        else:
+            self._index = -1
+            self._metadata_panel.clear_panel()
+            self._refresh_state()
+            return
+        sample = self._metadata.samples[self._index]
         image_path = self._dataset_dir / sample.image if self._dataset_dir else Path(sample.image)
         existing_mask = self._dataset_dir / sample.mask if self._dataset_dir else None
         cached = self._mask_cache.get(sample.id)
@@ -688,6 +751,7 @@ class MainWindow(QMainWindow):
             img.save(mask_path, format="PNG")
         save_annotated(self._metadata, self._dataset_dir)
         self._set_dirty(False)
+        self._rebuild_list()
         if show_message:
             QMessageBox.information(
                 self,
