@@ -1,5 +1,63 @@
 {
   "schemaVersion": "mcs-model-index-v1",
-  "defaultModelId": null,
-  "models": []
+  "defaultModelId": "coin-segmentation-poker",
+  "models": [
+    {
+      "id": "coin-segmentation-poker",
+      "displayName": "Coin Segmentation",
+      "description": "Segmentierungsmodell fuer MagicCoinSnapper",
+      "objectType": "coin",
+      "currency": "unknown",
+      "useCase": "segmentation",
+      "profile": "poker",
+      "version": "0.7.0",
+      "modelUrl": "models/coin-segmentation-poker/coin-segmentation.onnx",
+      "metadataUrl": "models/coin-segmentation-poker/model.json",
+      "contract": "mcs-segmentation-512-letterbox-v1",
+      "input": {
+        "name": "input",
+        "dtype": "float32",
+        "shape": [
+          1,
+          3,
+          512,
+          512
+        ],
+        "layout": "NCHW",
+        "colorOrder": "RGB",
+        "normalization": "/255",
+        "range": [
+          0.0,
+          1.0
+        ],
+        "preprocessing": {
+          "resize": {
+            "mode": "letterbox",
+            "longestMaxSize": 512,
+            "padTo": [
+              512,
+              512
+            ],
+            "padValue": 0,
+            "maskPadValue": 0
+          }
+        }
+      },
+      "output": {
+        "name": "mask",
+        "dtype": "float32",
+        "shape": [
+          1,
+          1,
+          512,
+          512
+        ],
+        "range": [
+          0.0,
+          1.0
+        ],
+        "threshold": 0.5
+      }
+    }
+  ]
 }
